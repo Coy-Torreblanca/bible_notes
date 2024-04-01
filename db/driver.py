@@ -8,11 +8,11 @@ class MongoDriver:
     _CLIENT = None
 
     @classmethod
-    def get_client(cls):
+    def get_client(cls) -> pymongo.MongoClient:
         return cls._get_local_client()
 
     @classmethod
-    def _get_local_client(cls):
+    def _get_local_client(cls) -> pymongo.MongoClient:
         if not cls._CLIENT:
             # Define the command
             command = ["brew", "services", "start", "mongodb-community@7.0"]
