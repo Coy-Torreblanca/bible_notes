@@ -14,26 +14,39 @@ class Verse:
     _id: str = field(default=None)
 
     def __post_init__(self):
+        # Chapter/verse/book or _id are required.
         if not self._id and not (self.BOOK, self.VERSE_NUMBER, self.CHAPTER_NUMBER):
             raise ValueError(f"Missing arguments for verse: {self}")
 
+        # If Chapter/verse/book are provided, generate _id.
         if self.BOOK and self.VERSE_NUMBER and self.CHAPTER_NUMBER:
             self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
 
+        # If id is provided generate Chapter/verse/book.
         else:
             data = self._id.split("/")
-            self.TRANSLATION = data[0]
-            self.BOOK = data[1]
-            self.CHAPTER_NUMBER = data[2]
-            self.VERSE_NUMBER = data[3]
 
+            # Parse non ids with translations and without translations.
+            if len(data) == 4:
+                self.TRANSLATION = data[0]
+                self.BOOK = data[1]
+                self.CHAPTER_NUMBER = int(data[2])
+                self.VERSE_NUMBER = int(data[3])
+
+            else:
+                self.BOOK = data[0]
+                self.CHAPTER_NUMBER = int(data[1])
+                self.VERSE_NUMBER = int(data[2])
+                self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
+
+        # Extract text from database if necessary.
         if not self.VERSE_TEXT:
             self.VERSE_TEXT = MongoDriver.get_client()[self.TRANSLATION][
                 self.BOOK
             ].find_one({"_id": self._id})["VERSE_TEXT"]
 
             if not self.VERSE_TEXT:
-                raise ValueError(f"No verse text found for specified verse: {_id}")
+                raise ValueError(f"No verse text found for specified verse: {self._id}")
 
     def todict(self):
         return asdict(self)
