@@ -65,6 +65,18 @@ class Verse:
             for reference in references:
                 self.REFERENCES.append(f"{self.TRANSLATION}/{reference}")
 
+    def get_reference_texts(self):
+        self.REFERENCE_TEXTS = []
+
+        for reference in self.REFERENCES:
+            book = reference.split("/")[1]
+
+            self.REFERENCE_TEXTS.append(
+                MongoDriver.get_client()[self.TRANSLATION][book].find_one(
+                    {"_id": reference}, {"VERSE_TEXT": True}
+                )
+            )
+
     def todict(self):
         return asdict(self)
 
@@ -76,3 +88,7 @@ class Verse:
     # Create a list of verses given:
     # f"{TRANSLATION}/{BOOK}/{CHAPTER_NUMBER}/{VERSE_NUMBER}-{VERSE_NUMBER}"
     # f"{TRANSLATION}/{BOOK}/{CHAPTER_NUMBER}/{VERSE_NUMBER}-{CHAPTER_NUMBER}/{VERSE_NUMBER}"
+
+
+if __name__ == "__main__":
+    Verse("Genesis", 1, 1).get_reference_texts()
