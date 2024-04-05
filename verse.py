@@ -11,6 +11,7 @@ class Verse:
     VERSE_TEXT: str = field(default="")
     # TODO Make default transaction configurable.
     TRANSLATION: str = field(default="asv")
+    REFERENCES: list[str] = field(default_factory=lambda: [])
     _id: str = field(default=None)
 
     def __post_init__(self):
@@ -48,11 +49,24 @@ class Verse:
             if not self.VERSE_TEXT:
                 raise ValueError(f"No verse text found for specified verse: {self._id}")
 
+        if not self.REFERENCES:
+            self.REFERENCES = []
+            id_without_translation = "/".join(self._id.split("/")[1:])
+            references = MongoDriver.get_client()["references"][self.BOOK].find_one(
+                {"_id": id_without_translation}, {"references": True}
+            )
+
+            if not references:
+                references = []
+
+            else:
+                references = references.get("references", [])
+
+            for reference in references:
+                self.REFERENCES.append(f"{self.TRANSLATION}/{reference}")
+
     def todict(self):
         return asdict(self)
-
-    # TODO
-    # Generate ID given required items. (Default translation possible.)
 
     # TODO
     # Create verse object(s) from text.
