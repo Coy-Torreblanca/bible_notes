@@ -12,10 +12,14 @@ def get_verse(args):
         BOOK=book, CHAPTER_NUMBER=args.chapter_number, VERSE_NUMBER=args.verse_number
     )
 
-    if args.do_not_get_reference_text:
-        verse.get_reference_texts()
+    if not args.get_references:
+        print(verse.__str__(include_references=False))
 
-    print(verse.__str__())
+    else:
+        if args.do_not_get_reference_text:
+            verse.get_reference_texts()
+
+        print(verse.__str__())
 
 
 def main():
@@ -34,10 +38,17 @@ def main():
     get_verse_parser.add_argument("verse_number", type=str, help="Verse number.")
     get_verse_parser.add_argument(
         "--do_not_get_reference_text",
-        "-nr",
+        "-nt",
         action="store_false",
         help="Whether to get verse text of references.",
         default=True,
+    )
+    get_verse_parser.add_argument(
+        "--get_references",
+        "-r",
+        action="store_true",
+        help="Whether to get verse references.",
+        default=False,
     )
     get_verse_parser.set_defaults(func=get_verse)
 

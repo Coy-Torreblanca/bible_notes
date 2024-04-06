@@ -79,8 +79,11 @@ class Verse:
                 )
             )
 
-    def __str__(self) -> str:
+    def __str__(self, include_references=True) -> str:
         string = [self._id, self.VERSE_TEXT]
+
+        if not include_references:
+            return f"# {string[0]}\n> {string[1]}"
 
         if self.REFERENCE_TEXTS:
             references = []
@@ -96,7 +99,7 @@ class Verse:
         else:
             string.append("\n".join(self.REFERENCES))
 
-        return f"# Verse\n{string[0]}\n\n# Text\n> {string[1]}\n\n# References\n{string[2]}"
+        return f"# {string[0]}\n> {string[1]}\n\n# References\n{string[2]}"
 
     def todict(self):
         return asdict(self)
