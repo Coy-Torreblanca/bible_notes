@@ -4,6 +4,9 @@ import os
 from db.driver import MongoDriver
 from verse import Verse
 
+# TODO use unified scripture xlm
+# https://ubsicap.github.io/usx/vocabularies.html
+
 
 def insert_bible(translation: str):
     with open(

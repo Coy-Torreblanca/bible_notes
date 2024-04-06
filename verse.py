@@ -15,6 +15,8 @@ class Verse:
     _id: str = field(default=None)
 
     def __post_init__(self):
+        self.REFERENCE_TEXTS = []
+
         # Chapter/verse/book or _id are required.
         if not self._id and not (self.BOOK, self.VERSE_NUMBER, self.CHAPTER_NUMBER):
             raise ValueError(f"Missing arguments for verse: {self}")
@@ -76,6 +78,25 @@ class Verse:
                     {"_id": reference}, {"VERSE_TEXT": True}
                 )
             )
+
+    def __str__(self) -> str:
+        string = [self._id, self.VERSE_TEXT]
+
+        if self.REFERENCE_TEXTS:
+            references = []
+
+            for reference in self.REFERENCE_TEXTS:
+                _id = reference["_id"]
+                verse_text = reference["VERSE_TEXT"]
+
+                references.append(f"## {_id}\n\n> {verse_text}\n")
+
+            string.append("\n".join(references))
+
+        else:
+            string.append("\n".join(self.REFERENCES))
+
+        return f"# Verse\n{string[0]}\n\n# Text\n> {string[1]}\n\n# References\n{string[2]}"
 
     def todict(self):
         return asdict(self)

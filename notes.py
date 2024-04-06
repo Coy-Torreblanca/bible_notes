@@ -1,5 +1,6 @@
 import re
 from verse import Verse
+from db.driver import MongoDriver
 from dataclasses import dataclass, field, asdict
 
 
@@ -22,3 +23,10 @@ class Note:
 
         self.note = text
         self.verses = verses
+
+    def insert(self):
+        MongoDriver.get_client()["notes"]["all_notes"].insert_one(self.todict)
+
+    def todict(self):
+        self_dict = asdict(self)
+        self_dict["verses"] = [verse.VERSE_TEXT for verse in self_dict["verses"]]
