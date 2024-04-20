@@ -58,7 +58,7 @@ class Verse:
         # Extract text from database if necessary.
         if not self.VERSE_TEXT:
             # Extract text if only a single verse number was provided.
-            if "-" not in self.VERSE_NUMBER:
+            if isinstance(self.VERSE_NUMBER, int) or "-" not in self.VERSE_NUMBER:
                 self.VERSE_TEXT = MongoDriver.get_client()[self.TRANSLATION][
                     self.BOOK
                 ].find_one({"_id": self._id})["VERSE_TEXT"]
