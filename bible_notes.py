@@ -11,10 +11,10 @@ class BibleNote:
     """Object to write, update, and search notes related to the Bible.
 
     Required data for database upsertion:
-        _id
-        note_text
-        theme
-        tags
+        _id,
+        note_text,
+        theme,
+        tags,
     """
 
     # Mongo Driver Attributes.
@@ -34,18 +34,47 @@ class BibleNote:
     # List of verses referenced in this note.
     # Values should be verse_ids.
     referenced_verses: list[str] = field(default_factory=lambda: [])
-    # List of notes referenced in this note.
+    # Set of notes referenced in this note.
     # Values should be note_ids.
     referenced_notes: list[str] = field(default_factory=lambda: [])
 
     def __post_init__(self):
         """
-        Create _id.
+        Generate _id.
         Note - If you need existing note, use the get method.
         """
 
         # Create note_id if one not provided.
-        self._id = self._id if self._id else generate_random_id()
+        new_note = self._id is None
+
+        if new_note:
+            self._id = generate_random_id()
+
+        else:
+            # Remove deleted referenced notes from note text.
+            current_note_references = self.get_note_references()
+
+            for referenced_note_id in self.referenced_notes:
+                if referenced_note_id not in current_note_references:
+                    # Deleted note is referenced in text.
+                    # Delete note referenced in text.
+                    self.delete_note_reference_from_text(referenced_note_id)
+
+    def get_note_references(self) -> set:
+        """Parse note text for referenced notes.
+
+        Returns:
+            set: Referenced notes in note text.
+        """
+        return set()
+
+    def delete_note_reference_from_text(self, note_id: str) -> None:
+        """Delete referenced note in note text.
+
+        Args:
+            note_id (str): Note id to delete from note text.
+        """
+        pass
 
     @classmethod
     def get(cls, _id: str) -> Optional["BibleNote"]:
@@ -65,6 +94,7 @@ class BibleNote:
     @classmethod
     def delete(cls, _id: str) -> bool:
         """Delete the document associated with the note_id from the database.
+        Delete references to note_id.
 
         Args:
             _id (str): The note_id of the document to delete.
@@ -73,6 +103,12 @@ class BibleNote:
             bool: If the document was deleted.
         """
 
+        # Delete references to note.
+        MongoDriver.get_client()[cls._MONGO_DATABASE][
+            cls._MONGO_COLLECTION
+        ].update_many({}, {"$pull": {"referenced_notes": _id}})
+
+        # Delete Note.
         result = MongoDriver.get_client()[cls._MONGO_DATABASE][
             cls._MONGO_COLLECTION
         ].delete_one({"_id": _id})

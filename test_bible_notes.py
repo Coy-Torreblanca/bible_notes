@@ -9,17 +9,19 @@ class TestNotes(unittest.TestCase):
     # TODO - After test delete random ids.
     def setUp(self):
         self.note_id = generate_random_id()
+        self.note_id2 = generate_random_id()
 
     def tearDown(self):
-        MongoDriver.get_client()[BibleNote._MONGO_DATABASE][
-            BibleNote._MONGO_COLLECTION
-        ].delete_many({"_id": self.note_id})
+        for note_id in [self.note_id, self.note_id2]:
+            MongoDriver.get_client()[BibleNote._MONGO_DATABASE][
+                BibleNote._MONGO_COLLECTION
+            ].delete_many({"_id": note_id})
 
-        self.note_id = None
+            note_id = None
 
-        result = MongoDriver.get_client()[BibleNote._MONGO_DATABASE][
-            BibleNote._MONGO_COLLECTION
-        ].find_one({"_id": self.note_id})
+            result = MongoDriver.get_client()[BibleNote._MONGO_DATABASE][
+                BibleNote._MONGO_COLLECTION
+            ].find_one({"_id": note_id})
 
         assert result is None
 
@@ -89,6 +91,36 @@ class TestNotes(unittest.TestCase):
 
             except ValueError:
                 pass
+
+    def test_deletion_of_references(self):
+        """Ensure when a note referenced by another is deleted, the reference is deleted."""
+
+        # Create note that will be referenced by another.
+        referenced_note = BibleNote(
+            _id=self.note_id, theme="askdfl", note_text="asdf", tags=["asdf"]
+        )
+
+        referenced_note.upsert()
+
+        # Create note that references the original.
+        referencing_note = BibleNote(
+            _id=self.note_id2,
+            theme="askdfl",
+            note_text="asdf",
+            tags=["asdf"],
+            referenced_notes=[self.note_id],
+        )
+
+        referencing_note.upsert()
+
+        # Delete referenced note.
+        BibleNote.delete(self.note_id)
+
+        # Refresh referencing note.
+        referencing_note = BibleNote.get(self.note_id2)
+
+        # Ensure deleted note no longer is referenced.
+        self.assertEqual(referencing_note.referenced_notes, [])
 
 
 if __name__ == "__main__":
