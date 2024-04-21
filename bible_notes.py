@@ -40,7 +40,7 @@ class BibleNote:
 
     def __post_init__(self):
         """
-        Generate _id.
+        Generate _id. Removed deleted referenced notes from note text.
         Note - If you need existing note, use the get method.
         """
 
