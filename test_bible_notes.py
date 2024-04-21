@@ -72,11 +72,7 @@ class TestNotes(unittest.TestCase):
         self.assertIsNone(BibleNote.get(object_from_db._id))
 
     def test_data_validation(self):
-        """Create object verses, and theme.
-        Try to insert it.
-        Test passes if a ValueError is caught.
-        Before failing test, delete note.
-        """
+        """Ensure that non-valid BibleNote objects cannot be upserted."""
 
         invalid_bible_notes = [
             BibleNote(_id=self.note_id, note_text="asdf", theme="asdf"),

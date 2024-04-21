@@ -32,30 +32,20 @@ class BibleNote:
     tags: list[str] = field(default_factory=lambda: [])
 
     # List of verses referenced in this note.
-    # If any are string, assumed to be verse_id and will be converted into a verse.
-    referenced_verses: list[Union[Verse, str]] = field(default_factory=lambda: [])
+    # Values should be verse_ids.
+    referenced_verses: list[str] = field(default_factory=lambda: [])
     # List of notes referenced in this note.
-    # If any are string, assumed to be _id and will be converted into a verse.
-    referenced_notes: list[Union["BibleNote", str]] = field(default_factory=lambda: [])
+    # Values should be note_ids.
+    referenced_notes: list[str] = field(default_factory=lambda: [])
 
     def __post_init__(self):
         """
-        1. Create _id if one not provided.
-        2. Convert verse_ids and note_ids into respective objects.
+        Create _id.
+        Note - If you need existing note, use the get method.
         """
 
         # Create note_id if one not provided.
         self._id = self._id if self._id else generate_random_id()
-
-        # Convert note_ids into Note objects.
-        for i in range(len(self.referenced_notes)):
-            if isinstance(self.referenced_notes[i], str):
-                self.referenced_notes[i] = BibleNote(_id=self.referenced_notes[i])
-
-        # Convert verse_ids into Verse objects.
-        for i in range(len(self.referenced_verses)):
-            if isinstance(self.referenced_verses[i], str):
-                self.referenced_verses[i] = Verse(_id=self.referenced_verses[i])
 
     @classmethod
     def get(cls, _id: str) -> Optional["BibleNote"]:
@@ -114,14 +104,9 @@ class BibleNote:
         """Create a dictionary version of this object
 
         Returns:
-            dict: _description_
+            dict: dictionary version of this object.
         """
 
         self_dict = asdict(self)
-
-        # Convert child objects into their ids.
-        # TODO - (presumebly) spent compute power converting objects to dictionaries only to convert them back to strings.
-        self_dict["referenced_verses"] = [verse._id for verse in self.referenced_verses]
-        self_dict["referenced_notes"] = [note._id for note in self.referenced_notes]
 
         return self_dict
