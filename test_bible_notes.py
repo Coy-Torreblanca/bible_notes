@@ -34,7 +34,6 @@ class TestNotes(unittest.TestCase):
             note_text="This is a note.",
             theme="theme",
             tags=["tag"],
-            referenced_notes=["asjldfja"],
             referenced_verses=["asv/John/1/1"],
         )
 
@@ -76,6 +75,7 @@ class TestNotes(unittest.TestCase):
     def test_data_validation(self):
         """Ensure that non-valid BibleNote objects cannot be upserted."""
 
+        # Ensure no object without a required attribute may be upserted into the database.
         invalid_bible_notes = [
             BibleNote(_id=self.note_id, note_text="asdf", theme="asdf"),
             BibleNote(_id=self.note_id, theme="asdf", tags=["asdf"]),
@@ -91,6 +91,38 @@ class TestNotes(unittest.TestCase):
 
             except ValueError:
                 pass
+
+        # Ensure bible notes with invalid note references cannot be inserted.
+        invalid_bible_note = BibleNote(
+            _id=self.note_id,
+            note_text="asdf",
+            theme="asdf",
+            tags=["asdf"],
+            referenced_notes=["invalid_note_id"],
+        )
+
+        try:
+            invalid_bible_note.upsert()
+            self.fail(f"Invalid bible note successfully upserted: {invalid_bible_note}")
+
+        except ValueError:
+            pass
+
+        # Ensure bible notes with invalid verse references cannot be inserted.
+        invalid_bible_note = BibleNote(
+            _id=self.note_id,
+            note_text="asdf",
+            theme="asdf",
+            tags=["asdf"],
+            referenced_verses=["invalid_verse_id"],
+        )
+
+        try:
+            invalid_bible_note.upsert()
+            self.fail(f"Invalid bible note successfully upserted: {invalid_bible_note}")
+
+        except ValueError:
+            pass
 
     def test_deletion_of_references(self):
         """Ensure when a note referenced by another is deleted, the reference is deleted."""
@@ -121,6 +153,27 @@ class TestNotes(unittest.TestCase):
 
         # Ensure deleted note no longer is referenced.
         self.assertEqual(referencing_note.referenced_notes, [])
+
+    def test_valid_refences(self):
+        """Ensure valid refences can be upserted."""
+
+        # Create note that will be referenced by another.
+        referenced_note = BibleNote(
+            _id=self.note_id, theme="askdfl", note_text="asdf", tags=["asdf"]
+        )
+
+        referenced_note.upsert()
+
+        # Create note that references the original.
+        referencing_note = BibleNote(
+            _id=self.note_id2,
+            theme="askdfl",
+            note_text="asdf",
+            tags=["asdf"],
+            referenced_notes=[self.note_id],
+        )
+
+        referencing_note.upsert()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import re
-from typing import Union, Optional
+from typing import Optional
 from verse import Verse
 from utilities import generate_random_id
 from db.driver import MongoDriver
@@ -60,6 +60,10 @@ class BibleNote:
                     # Delete note referenced in text.
                     self.delete_note_reference_from_text(referenced_note_id)
 
+    def update_note_text(self):
+        """Update note text and dependent attributes."""
+        pass
+
     def get_note_references(self) -> set:
         """Parse note text for referenced notes.
 
@@ -115,6 +119,24 @@ class BibleNote:
 
         return result.deleted_count == 1
 
+    @classmethod
+    def exists(cls, note_id: str) -> bool:
+        """Check if a note exists with the given note_id.
+
+        Args:
+            note_id (str): The note_id of the note to check if exists.
+
+        Returns:
+            bool: If the note exists.
+        """
+
+        return (
+            MongoDriver.get_client()[cls._MONGO_DATABASE][
+                cls._MONGO_COLLECTION
+            ].count_documents({"_id": note_id})
+            == 1
+        )
+
     def upsert(self) -> None:
         """Upsert this object into the database.
            Validate required fields are present before upserting.
@@ -123,10 +145,24 @@ class BibleNote:
             ValueError: If required fields are not present.
         """
 
-        # Validate data.
+        # Ensure all required fields are present.
         if not self._id or not self.note_text or not self.theme or not self.tags:
             raise ValueError("Required data not present in Object.")
 
+        # Ensure all references exist.
+        for note_id in self.referenced_notes:
+            if not BibleNote.exists(note_id=note_id):
+                raise ValueError(
+                    f"Attempting to reference a non-existing note. Note_id: {note_id}"
+                )
+
+        for verse_id in self.referenced_verses:
+            if not Verse.exists(verse_id=verse_id):
+                raise ValueError(
+                    f"Attempting to reference a non-existing verse. verse_id: {verse_id}"
+                )
+
+        # Upsert object.
         self_dict = self.to_db_dict()
         MongoDriver.get_client()[self._MONGO_DATABASE][
             self._MONGO_COLLECTION

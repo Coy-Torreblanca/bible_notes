@@ -107,6 +107,24 @@ class Verse:
             for reference in references:
                 self.REFERENCES.append(f"{self.TRANSLATION}/{reference}")
 
+    @classmethod
+    def exists(cls, verse_id: str) -> bool:
+        """Check if a verse exists in the db with the given verse_id.
+
+        Args:
+            verse_id (str): The verse_id of the verse to check if exists.
+
+        Returns:
+            bool: If the verse exists.
+        """
+
+        try:
+            Verse(_id=verse_id)
+            return True
+
+        except Exception:
+            return False
+
     def get_reference_texts(self):
         """Get all texts from all reference verses in this obj."""
         self.REFERENCE_TEXTS = []
