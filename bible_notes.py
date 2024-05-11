@@ -32,7 +32,6 @@ class BibleNote:
     tags: list[dict] = field(default_factory=lambda: [])
 
     date_created: Optional[datetime] = None
-    date_updated: Optional[datetime] = None
 
     # List of verses referenced in this note.
     # Values should be verse_ids.
