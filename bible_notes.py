@@ -31,6 +31,7 @@ class BibleNote:
     # Tags describing Note.
     tags: list[dict] = field(default_factory=lambda: [])
 
+    date_updated: Optional[datetime] = None
     date_created: Optional[datetime] = None
 
     # List of verses referenced in this note.
@@ -164,6 +165,12 @@ class BibleNote:
                     f"Attempting to reference a non-existing verse. verse_id: {verse_id}"
                 )
 
+        # Update date updated.
+        self.date_updated = datetime.now()
+
+        if not self.date_created:
+            self.date_created = datetime.now()
+
         # Upsert object.
         self_dict = self.to_db_dict()
         MongoDriver.get_client()[self._MONGO_DATABASE][
@@ -173,9 +180,6 @@ class BibleNote:
             update={"$set": self_dict},
             upsert=True,
         )
-
-        # Update date updated.
-        self.date_updated = datetime.now()
 
     def to_db_dict(self) -> dict:
         """Create a dictionary version of this object

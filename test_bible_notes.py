@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from bible_notes import BibleNote
 from utilities import generate_random_id
 from db.driver import MongoDriver
@@ -40,12 +41,21 @@ class TestNotes(unittest.TestCase):
         # Insert object.
         original_note.upsert()
 
-        # Don't test date_updated
-        # It is an automatic value which changes when an object is inserted in the database.
-        original_note.date_updated = None
+        self.assertEqual(datetime.now().date(), original_note.date_created.date())
+        self.assertEqual(datetime.now().date(), original_note.date_updated.date())
 
         # Get object.
         object_from_db = BibleNote.get(original_note._id)
+
+        self.assertEqual(datetime.now().date(), object_from_db.date_created.date())
+        self.assertEqual(datetime.now().date(), object_from_db.date_updated.date())
+
+        # Don't test date attributes in object equality test.
+        # It is an automatic value which changes when an object is inserted in the database.
+        original_note.date_updated = None
+        original_note.date_created = None
+        object_from_db.date_updated = None
+        object_from_db.date_created = None
 
         # Validate gotten object is the same as inserted object.
         self.assertEqual(original_note, object_from_db)
@@ -54,16 +64,18 @@ class TestNotes(unittest.TestCase):
         object_from_db.tags = ["new_tag"]
         object_from_db.upsert()
 
-        # Don't test date_updated.
-        # It is an automatic value which changes when an object is inserted in the database.
-        object_from_db.date_updated = None
-
         # Get updated object.
         object_from_db_two = BibleNote.get(object_from_db._id)
 
-        # Don't test date_updated.
+        self.assertEqual(datetime.now().date(), object_from_db_two.date_created.date())
+        self.assertEqual(datetime.now().date(), object_from_db_two.date_updated.date())
+
+        # Don't test date attributes in object equality test.
         # It is an automatic value which changes when an object is inserted in the database.
+        object_from_db.date_updated = None
+        object_from_db.date_created = None
         object_from_db_two.date_updated = None
+        object_from_db_two.date_created = None
 
         # Ensure new object is the same as updated object.
         self.assertEqual(object_from_db, object_from_db_two)
