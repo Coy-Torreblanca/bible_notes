@@ -40,6 +40,10 @@ class TestNotes(unittest.TestCase):
         # Insert object.
         original_note.upsert()
 
+        # Don't test date_updated
+        # It is an automatic value which changes when an object is inserted in the database.
+        original_note.date_updated = None
+
         # Get object.
         object_from_db = BibleNote.get(original_note._id)
 
@@ -50,8 +54,16 @@ class TestNotes(unittest.TestCase):
         object_from_db.tags = ["new_tag"]
         object_from_db.upsert()
 
+        # Don't test date_updated.
+        # It is an automatic value which changes when an object is inserted in the database.
+        object_from_db.date_updated = None
+
         # Get updated object.
         object_from_db_two = BibleNote.get(object_from_db._id)
+
+        # Don't test date_updated.
+        # It is an automatic value which changes when an object is inserted in the database.
+        object_from_db_two.date_updated = None
 
         # Ensure new object is the same as updated object.
         self.assertEqual(object_from_db, object_from_db_two)

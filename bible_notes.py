@@ -1,4 +1,4 @@
-import re
+from datetime import datetime
 from typing import Optional
 from verse import Verse
 from utilities import generate_random_id
@@ -29,7 +29,10 @@ class BibleNote:
     # Summary of note_text.
     theme: str = None
     # Tags describing Note.
-    tags: list[str] = field(default_factory=lambda: [])
+    tags: list[dict] = field(default_factory=lambda: [])
+
+    date_created: Optional[datetime] = None
+    date_updated: Optional[datetime] = None
 
     # List of verses referenced in this note.
     # Values should be verse_ids.
@@ -171,6 +174,9 @@ class BibleNote:
             update={"$set": self_dict},
             upsert=True,
         )
+
+        # Update date updated.
+        self.date_updated = datetime.now()
 
     def to_db_dict(self) -> dict:
         """Create a dictionary version of this object

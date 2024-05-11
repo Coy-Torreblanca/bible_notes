@@ -1,6 +1,6 @@
 import re
 from verse import Verse
-from notes import Note
+from bible_notes import BibleNote
 import argparse
 
 
