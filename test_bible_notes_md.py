@@ -246,7 +246,7 @@ class TestBibleNotesMD(unittest.TestCase):
         new_bible_note._id = None
 
         # Set attritubes of new bible note.
-        new_bible_note._set_self_from_db(parent_note)
+        self.assertTrue(new_bible_note._set_self_from_db(parent_note))
         self.assertEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
 
         # Test that self is not replaced if note text is different.
@@ -254,7 +254,7 @@ class TestBibleNotesMD(unittest.TestCase):
         new_bible_note = BibleNoteMD(_id="190190", note_text=note_text + ".")
         new_bible_note._id = None
 
-        new_bible_note._set_self_from_db(parent_note)
+        self.assertFalse(new_bible_note._set_self_from_db(parent_note))
         self.assertNotEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
 
 
