@@ -29,17 +29,18 @@ class BibleNote:
     # Summary of note_text.
     theme: str = None
     # Tags describing Note.
-    tags: list[dict] = field(default_factory=lambda: [])
+    key_value_tags: list[dict] = field(default_factory=lambda: {})
+    tags: set[str] = field(default_factory=lambda: [])
 
     date_updated: Optional[datetime] = None
     date_created: Optional[datetime] = None
 
     # List of verses referenced in this note.
     # Values should be verse_ids.
-    referenced_verses: list[str] = field(default_factory=lambda: [])
+    referenced_verses: set[str] = field(default_factory=lambda: set())
     # Set of notes referenced in this note.
     # Values should be note_ids.
-    referenced_notes: list[str] = field(default_factory=lambda: [])
+    referenced_notes: set[str] = field(default_factory=lambda: set())
 
     def __post_init__(self):
         """
@@ -95,6 +96,10 @@ class BibleNote:
 
         if not data:
             return None
+
+        data["referenced_verses"] = set(data["referenced_verses"])
+        data["referenced_notes"] = set(data["referenced_notes"])
+        data["tags"] = set(data["tags"])
 
         return cls(**data)
 
@@ -173,6 +178,12 @@ class BibleNote:
 
         # Upsert object.
         self_dict = self.to_db_dict()
+
+        # Convert sets to lists as Mongo does not accept lists.
+        self_dict["referenced_verses"] = list(self_dict["referenced_verses"])
+        self_dict["referenced_notes"] = list(self_dict["referenced_notes"])
+        self_dict["tags"] = list(self_dict["tags"])
+
         MongoDriver.get_client()[self._MONGO_DATABASE][
             self._MONGO_COLLECTION
         ].update_one(

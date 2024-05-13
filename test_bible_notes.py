@@ -34,8 +34,9 @@ class TestNotes(unittest.TestCase):
             _id=self.note_id,
             note_text="This is a note.",
             theme="theme",
-            tags=["tag"],
-            referenced_verses=["asv/John/1/1"],
+            tags={"one", "two", "three"},
+            key_value_tags={"key": "value"},
+            referenced_verses={"asv/John/1/1"},
         )
 
         # Insert object.
@@ -61,7 +62,7 @@ class TestNotes(unittest.TestCase):
         self.assertEqual(original_note, object_from_db)
 
         # Update object attribute and upsert it.
-        object_from_db.tags = ["new_tag"]
+        object_from_db.tags = {"new_tag"}
         object_from_db.upsert()
 
         # Get updated object.
@@ -84,7 +85,7 @@ class TestNotes(unittest.TestCase):
         self.assertNotEqual(original_note, object_from_db_two)
 
         # Ensure attribute was updated.
-        self.assertEqual(object_from_db_two.tags, ["new_tag"])
+        self.assertEqual(object_from_db_two.tags, {"new_tag"})
 
         # Ensure all _id fields are equal.
         self.assertEqual(original_note._id, object_from_db._id)
@@ -176,7 +177,7 @@ class TestNotes(unittest.TestCase):
         referencing_note = BibleNote.get(self.note_id2)
 
         # Ensure deleted note no longer is referenced.
-        self.assertEqual(referencing_note.referenced_notes, [])
+        self.assertEqual(referencing_note.referenced_notes, set())
 
     def test_valid_refences(self):
         """Ensure valid refences can be upserted."""
