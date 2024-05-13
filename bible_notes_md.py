@@ -33,7 +33,7 @@ class BibleNoteMD(BibleNote):
         # Inherit from child note ids in parent.
         child_ids_in_parent = re.findall("^@__id([a-z0-9]+)@$", parent_note, flags=re.M)
         for child_id in child_ids_in_parent:
-            child_note = BibleNote.get(_id=child_id[1:])
+            child_note = BibleNote.get(_id=child_id)
             self._inherit_child_note(child_note=child_note)
 
         # Add child note ids to parent_note.
