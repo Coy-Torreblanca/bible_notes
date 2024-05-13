@@ -27,7 +27,8 @@ class TestNotes(unittest.TestCase):
         assert result is None
 
     def test_database_driver(self):
-        """Test object database drivers."""
+        """Test object database drivers.
+        Test creation, updatation, deletion of notes."""
 
         # Create new object.
         original_note = BibleNote(
@@ -63,6 +64,7 @@ class TestNotes(unittest.TestCase):
 
         # Update object attribute and upsert it.
         object_from_db.tags = {"new_tag"}
+        object_from_db.key_value_tags = {"new_tag": True}
         object_from_db.upsert()
 
         # Get updated object.
@@ -86,6 +88,7 @@ class TestNotes(unittest.TestCase):
 
         # Ensure attribute was updated.
         self.assertEqual(object_from_db_two.tags, {"new_tag"})
+        self.assertEqual(object_from_db_two.key_value_tags, {"new_tag": True})
 
         # Ensure all _id fields are equal.
         self.assertEqual(original_note._id, object_from_db._id)
@@ -122,8 +125,8 @@ class TestNotes(unittest.TestCase):
             _id=self.note_id,
             note_text="asdf",
             theme="asdf",
-            tags=["asdf"],
-            referenced_notes=["invalid_note_id"],
+            tags={"asdf"},
+            referenced_notes={"invalid_note_id"},
         )
 
         try:
@@ -138,8 +141,8 @@ class TestNotes(unittest.TestCase):
             _id=self.note_id,
             note_text="asdf",
             theme="asdf",
-            tags=["asdf"],
-            referenced_verses=["invalid_verse_id"],
+            tags={"asdf"},
+            referenced_verses={"invalid_verse_id"},
         )
 
         try:
@@ -164,8 +167,8 @@ class TestNotes(unittest.TestCase):
             _id=self.note_id2,
             theme="askdfl",
             note_text="asdf",
-            tags=["asdf"],
-            referenced_notes=[self.note_id],
+            tags={"asdf"},
+            referenced_notes={self.note_id},
         )
 
         referencing_note.upsert()
