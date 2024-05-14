@@ -5,6 +5,9 @@ from typing import Optional
 from bible_notes import BibleNote
 from dataclasses import dataclass, field
 
+child_id_regex = "^@__id([a-z0-9]+)@$"
+_id_regex = "^@_id([a-z0-9]+)@$"
+
 
 @dataclass
 class BibleNoteMD(BibleNote):
@@ -21,7 +24,7 @@ class BibleNoteMD(BibleNote):
         """Extract object attributes from note_text."""
 
         # Split parent from child notes.
-        split_notes = self.note_text.split("#" * self.header_level + " @ ")
+        split_notes = self._split_notes(self.note_text, self.header_level)
         parent_note = split_notes[0]
 
         # Check if note is in Mongo database and this note hasn't been updated.
@@ -29,16 +32,6 @@ class BibleNoteMD(BibleNote):
             return
 
         children_notes = self._split_notes[1:]
-
-        # Inherit from child note ids in parent.
-        child_ids_in_parent = re.findall("^@__id([a-z0-9]+)@$", parent_note, flags=re.M)
-        for child_id in child_ids_in_parent:
-            child_note = BibleNote.get(_id=child_id)
-            self._inherit_child_note(child_note=child_note)
-
-        # Add child note ids to parent_note.
-        child_ids_in_parent[0] = "\n" + child_ids_in_parent
-        parent_note += "\n".join(child_ids_in_parent)
 
         # if not _id:
         # raise ValueError("Note text did not contain a valid _id field.")
@@ -67,6 +60,21 @@ class BibleNoteMD(BibleNote):
 
         return split_notes
 
+    def _process_child_ids_in_parent_text(self, parent_note: str) -> None:
+        """Retrieve child ids from parent note.
+        Inherit child notes.
+
+        Args:
+            parent_note (str): Text of parent note which will inherit child ids present.
+        """
+
+        # Inherit from child note ids in parent.
+        child_ids_in_parent = re.findall(child_id_regex, parent_note, flags=re.M)
+        for child_id in child_ids_in_parent:
+            child_note = BibleNote.get(_id=child_id)
+            if child_note:
+                self._inherit_child_note(child_note=child_note)
+
     def _set_self_from_db(self, parent_note_text: str) -> bool:
         """Set attributes from mongodb if text matches note in mongodb.
 
@@ -79,7 +87,12 @@ class BibleNoteMD(BibleNote):
         """
 
         if not self._id:
-            _id = re.search("^@_id([a-z0-9]+)@$", parent_note_text, flags=re.M)
+            _id = re.search(_id_regex, parent_note_text, flags=re.M)
+
+            if not _id:
+                return False
+
+            _id = _id.group(1)
 
             bible_note = BibleNoteMD.get(_id=_id)
 
@@ -99,11 +112,12 @@ class BibleNoteMD(BibleNote):
             child_note (BibleNoteMD): Child note to inherit from.
         """
         # Add child tags to parent.
-        for key, value in child_note.key_value_tags.items():
-            if key not in self.tags:
-                self.key_value_tags[key] = value
+        if child_note.key_value_tags:
+            for key, value in child_note.key_value_tags.items():
+                if key not in self.tags:
+                    self.key_value_tags[key] = value
 
-        self.tags.update(child_note.tags)
+            self.tags.update(child_note.tags)
 
         # Add child verse/note references to parent.
         self.referenced_verses.update(child_note.referenced_verses)

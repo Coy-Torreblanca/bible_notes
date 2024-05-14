@@ -1,7 +1,8 @@
 import unittest
+import re
 from unittest.mock import patch
 from datetime import datetime
-from bible_notes_md import BibleNoteMD
+from bible_notes_md import BibleNoteMD, child_id_regex, _id_regex
 
 h0 = """asdlkfja;sdf
 
@@ -233,7 +234,16 @@ class TestBibleNotesMD(unittest.TestCase):
             key_value_tags={"tagged": True},
         )
 
-        mock_get_bible_note.return_value = note_in_mongo
+        # Create mock function which will only except target id and return mongo note.
+
+        def mock_function_side_affect(_id):
+            if _id == note_id:
+                return note_in_mongo
+
+            else:
+                self.fail(f"Provided argument was not expected id: {_id}")
+
+        mock_get_bible_note.side_effect = mock_function_side_affect
 
         note_in_mongo_dict = note_in_mongo.to_db_dict()
 
@@ -256,6 +266,126 @@ class TestBibleNotesMD(unittest.TestCase):
 
         self.assertFalse(new_bible_note._set_self_from_db(parent_note))
         self.assertNotEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
+
+    @patch("bible_notes_md.BibleNote.get")
+    def test_process_child_ids_in_parent(self, bible_note_md_get):
+
+        child_id = "13902943"
+        child_kv_tags = {"tagged": True}
+        child_tags = {"tagged"}
+        child_bible_note = BibleNoteMD(
+            _id=child_id, note_text=h2, key_value_tags=child_kv_tags, tags=child_tags
+        )
+
+        child_id_2 = "8503708asjk"
+        child_kv_tags_2 = {"not_tag": True}
+        child_tags_2 = {"tagged"}
+        child_bible_note_2 = BibleNoteMD(
+            _id=child_id_2,
+            note_text=h2_2,
+            key_value_tags=child_kv_tags_2,
+            tags=child_tags_2,
+        )
+
+        def mock_function(_id):
+            if _id == child_id:
+                return child_bible_note
+            elif _id == child_id_2:
+                return child_bible_note_2
+
+            self.fail(
+                f"Incorrect argument provided: {_id}. expected: {child_id} or {child_id_2}"
+            )
+
+        bible_note_md_get.side_effect = mock_function
+
+        parent_text = (
+            h1
+            + "\n"
+            + f"@__id{child_id}@"
+            + "\n"
+            + f"@__id{child_id_2}@"
+            + "\n@_id1903910193910@"
+        )
+
+        parent_note = BibleNoteMD(
+            _id="id1903910193910", note_text=parent_text, header_level=1
+        )
+
+        split_notes = parent_note._split_notes(
+            parent_note.note_text, parent_note.header_level
+        )
+
+        parent_note._process_child_ids_in_parent_text(split_notes[0])
+
+        self.assertEqual(parent_note.referenced_notes, {child_id, child_id_2})
+
+        self.assertEqual(
+            parent_note.key_value_tags, {**child_kv_tags, **child_kv_tags_2}
+        )
+
+        self.assertEqual(parent_note.tags, child_tags | child_tags_2)
+
+
+class TestBibleNoteMDRegexes(unittest.TestCase):
+    def test_child_id_regex(self):
+        child_ids = ["@__id123402990@", "@__id18301910@", "@__id9109909209ajslkdfj@"]
+
+        h0_w_child_ids = h0 + "\n@_id120919@\n" + "\n".join(child_ids)
+        h1_w_child_ids = h1 + "\n@_id9010asdfa0@\n" + "\n".join(child_ids)
+
+        # remove @__id and @ from child ids.
+        child_ids = [
+            child_id.replace("__id", "").replace("@", "") for child_id in child_ids
+        ]
+
+        child_ids_h0 = re.findall(child_id_regex, h0_w_child_ids, flags=re.M)
+
+        self.assertEqual(child_ids_h0, child_ids)
+
+        child_ids_h1 = re.findall(child_id_regex, h1_w_child_ids, flags=re.M)
+
+        self.assertEqual(child_ids_h1, child_ids)
+
+    def test_id_regex(self):
+        _ids = ["@_id123402990@", "@_id18301910@", "@_id9109909209ajslkdfj@"]
+
+        h0_w_ids = h0 + "\n" + "\n".join(_ids)
+        h1_w_ids = h1 + "\n" + "\n".join(_ids)
+
+        # remove @_id and @ from child ids.
+        _ids = [_id.replace("_id", "").replace("@", "") for _id in _ids]
+
+        _ids_h0 = re.findall(_id_regex, h0_w_ids, flags=re.M)
+
+        self.assertEqual(_ids_h0, _ids)
+
+        _ids_h1 = re.findall(_id_regex, h1_w_ids, flags=re.M)
+
+        self.assertEqual(_ids_h1, _ids)
+
+    def test_header_regex(self):
+
+        # Level 0
+        header_level = 0
+        next_header_regex = "\n" + "#" * (header_level + 1) + " @ "
+
+        match = re.search(next_header_regex, h0 + "\n" + h1)
+
+        self.assertIsNotNone(match)
+
+        self.assertEqual(match.group(0), "\n# @ ")
+
+        # Level 1
+        header_level = 1
+
+        next_header_regex = "\n" + "#" * (header_level + 1) + " @ "
+
+        match = re.search(next_header_regex, h1 + "\n" + h2)
+
+        self.assertIsNotNone(match)
+
+        self.assertEqual(match.group(0), "\n## @ ")
 
 
 if __name__ == "__main__":

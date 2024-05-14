@@ -30,7 +30,7 @@ class BibleNote:
     theme: str = None
     # Tags describing Note.
     key_value_tags: list[dict] = field(default_factory=lambda: {})
-    tags: set[str] = field(default_factory=lambda: [])
+    tags: set[str] = field(default_factory=lambda: set())
 
     date_updated: Optional[datetime] = None
     date_created: Optional[datetime] = None
