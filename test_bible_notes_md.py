@@ -2,7 +2,7 @@ import unittest
 import re
 from unittest.mock import patch
 from datetime import datetime
-from bible_notes_md import BibleNoteMD, child_id_regex, _id_regex
+from bible_notes_md import BibleNoteMD, child_id_regex, _id_regex, tags_regex
 
 h0 = """asdlkfja;sdf
 
@@ -16,6 +16,7 @@ tag_key 1: tag_value 1
 tag 2
 tag 3
 tag 4
+tag_key2:
 @"""
 
 h1 = """
@@ -326,6 +327,15 @@ class TestBibleNotesMD(unittest.TestCase):
 
         self.assertEqual(parent_note.tags, child_tags | child_tags_2)
 
+    def _test_process_tags(self):
+
+        bible_note = BibleNoteMD(_id="1234")
+
+        bible_note._process_tag_text(h0)
+
+        self.assertEqual(bible_note.key_value_tags, {"tag_key 1": "tag_value 1"})
+        self.assertEqual(bible_note.tags, {"tag2", "tag3", "tag4"})
+
 
 class TestBibleNoteMDRegexes(unittest.TestCase):
     def test_child_id_regex(self):
@@ -386,6 +396,15 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
         self.assertIsNotNone(match)
 
         self.assertEqual(match.group(0), "\n## @ ")
+
+    def test_tags_regex(self):
+
+        expected_output = """tag_key 1: tag_value 1\ntag 2\ntag 3\ntag 4\ntag_key2:"""
+
+        match = re.search(tags_regex, h0, re.M)
+
+        self.assertIsNotNone(match)
+        self.assertEqual(match.group(1), expected_output)
 
 
 if __name__ == "__main__":

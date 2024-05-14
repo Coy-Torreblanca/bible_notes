@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 child_id_regex = "^@__id([a-z0-9]+)@$"
 _id_regex = "^@_id([a-z0-9]+)@$"
+tags_regex = "^@tags\n^([\s\S]+)\n^@$"
 
 
 @dataclass
@@ -60,16 +61,63 @@ class BibleNoteMD(BibleNote):
 
         return split_notes
 
-    def _process_child_ids_in_parent_text(self, parent_note: str) -> None:
+    def _extract_attr_from_parent_text(self, parent_text: str) -> None:
+        """Extract attributes from parent text, including child_ids in parent text..
+        attributes: tags, referenced_verses, referenced_notes.
+
+        Args:
+            parent_text (str): Text of note without child note text.
+        """
+        # Extract tags.
+        self._process_tag_text(parent_text=parent_text)
+
+        # Extract attributes from child_ids.
+
+    def _process_tag_text(self, parent_text: str) -> None:
+        """Test tag text into kv and regular tags.
+
+        Args:
+            parent_text (str): Text of note without child note text.
+            Tags are extract from the following format in parent_text:
+
+            @tags
+            tag_key 1: tag_value 1
+            tag 2
+            @
+        """
+
+        # Extract tags.
+        match = re.search(tags_regex, parent_text, re.M)
+        if not match:
+            return
+
+        for tag in match.group(1).split("\n"):
+            # Split tag and check if kv tag.
+            split_tag = tag.split(":")
+
+            if len(split_tag) == 1:
+                # This is a regular tag.
+                self.tags.add(split_tag[0])
+                continue
+
+            if split_tag[1]:
+                # This is a kv tag.
+                self.key_value_tags[split_tag[0]] = split_tag[1]
+
+            else:
+                # This is a kv tag with a null key.
+                self.tags.add(split_tag[0])
+
+    def _process_child_ids_in_parent_text(self, parent_text: str) -> None:
         """Retrieve child ids from parent note.
         Inherit child notes.
 
         Args:
-            parent_note (str): Text of parent note which will inherit child ids present.
+            parent_text (str): Text of parent note wihout child note text.
         """
 
         # Inherit from child note ids in parent.
-        child_ids_in_parent = re.findall(child_id_regex, parent_note, flags=re.M)
+        child_ids_in_parent = re.findall(child_id_regex, parent_text, flags=re.M)
         for child_id in child_ids_in_parent:
             child_note = BibleNote.get(_id=child_id)
             if child_note:
