@@ -8,6 +8,7 @@ from bible_notes_md import (
     TAGS_REGEX,
     _ID_REGEX,
     VERSE_REGEX,
+    THEME_REGEX,
 )
 
 h0 = """asdlkfja;sdf
@@ -55,7 +56,14 @@ h2 = """
 @/kjv/Matthew/6-7@
 
 @theme
-...
+a
+b
+c
+d
+e
+f
+g
+h @/Luke/2/3-9@
 @
 
 @/Mark/13/4-8@
@@ -399,11 +407,25 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
 
         input_output_map = {
             h1: ["/asv/John/1/1-10", "/Psalms/39/10-23"],
-            h2: ["/kjv/Matthew/6-7", "/Mark/13/4-8"],
+            h2: ["/kjv/Matthew/6-7", "/Luke/2/3-9", "/Mark/13/4-8"],
         }
 
         for text, expected_output in input_output_map.items():
             self.assertEqual(re.findall(VERSE_REGEX, text, re.M), expected_output)
+
+    def test_THEME_REGEX(self):
+        input_output_map = {
+            h0: "these is the theme text\nthere is two lines\n",
+            h1: "these is the theme text\nthere is two lines\n",
+            h2: "a\nb\nc\nd\ne\nf\ng\nh @/Luke/2/3-9@\n",
+        }
+
+        for text, expected_output in input_output_map.items():
+            match = re.search(THEME_REGEX, text, re.M)
+
+            self.assertIsNotNone(match)
+            theme = match.group(1)
+            self.assertEqual(theme, expected_output)
 
 
 if __name__ == "__main__":

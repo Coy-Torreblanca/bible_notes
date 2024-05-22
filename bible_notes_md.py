@@ -9,7 +9,8 @@ from dataclasses import dataclass, field
 CHILD_ID_REGEX = "^@__id([a-z0-9]+)@$"
 _ID_REGEX = "^@_id([a-z0-9]+)@$"
 TAGS_REGEX = "^@tags\n^([\s\S]+)\n^@$"
-VERSE_REGEX = "^@(\/.*)@$"
+VERSE_REGEX = "@(\/.*)@"
+THEME_REGEX = "^@theme$\n^([\s\S]+?)^@$"
 
 
 @dataclass
@@ -85,6 +86,10 @@ class BibleNoteMD(BibleNote):
 
         # Extract verse_references.
         self.referenced_verses = set(re.findall(VERSE_REGEX, parent_text, re.M))
+
+        # Extract theme.
+        match = re.search(THEME_REGEX, parent_text, re.M)
+        self.theme = match if not match else match.group(1)
 
         # Extract attributes from child_ids.
 
