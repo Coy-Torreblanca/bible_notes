@@ -28,11 +28,9 @@ class BibleNoteMD(BibleNote):
 
         # Split parent from child notes.
         split_notes = self._split_notes(self.note_text, self.header_level)
-        parent_note = split_notes[0]
+        parent_text = split_notes[0]
 
-        # Check if note is in Mongo database and this note hasn't been updated.
-        if self._set_self_from_db(parent_note):
-            return
+        self._extract_attr_from_parent_text(parent_text=parent_text)
 
         children_notes = self._split_notes[1:]
 
@@ -86,6 +84,7 @@ class BibleNoteMD(BibleNote):
         self._process_tag_text(parent_text=parent_text)
 
         # Extract verse_references.
+        self.referenced_verses = set(re.findall(VERSE_REGEX, parent_text, re.M))
 
         # Extract attributes from child_ids.
 

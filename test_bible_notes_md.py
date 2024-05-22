@@ -41,6 +41,7 @@ tag 4
 @
 
 @/asv/John/1/1-10@
+@/Psalms/39/10-23@
 
 I am referencing a bible verse; therefore, this entire note can be found
 when searching for this verse.
@@ -51,9 +52,13 @@ h2 = """
 ## @ Child Note Title (Note Two)
 @_id1231291019@
 
+@/kjv/Matthew/6-7@
+
 @theme
 ...
 @
+
+@/Mark/13/4-8@
 
 @tags
 ...
@@ -94,21 +99,6 @@ h3 = """
 This is an existing note; therefore, it will be updated with any new text I put in 
 Hi hi hi.
 """
-
-h2 = """
-## @ Child Note Title (Note Two)
-@_id1231291019@
-
-@theme
-...
-@
-
-@tags
-...
-@
-
-This is an existing note; therefore, it will be updated with any new text I put in 
-here."""
 
 test_note = f"{h0}\n{h1}\n{h2}\n{h1}\n{h2_2}\n{h3}\n{h2}"
 
@@ -404,6 +394,16 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
 
         self.assertIsNotNone(match)
         self.assertEqual(match.group(1), expected_output)
+
+    def test_VERSE_REGEX(self):
+
+        input_output_map = {
+            h1: ["/asv/John/1/1-10", "/Psalms/39/10-23"],
+            h2: ["/kjv/Matthew/6-7", "/Mark/13/4-8"],
+        }
+
+        for text, expected_output in input_output_map.items():
+            self.assertEqual(re.findall(VERSE_REGEX, text, re.M), expected_output)
 
 
 if __name__ == "__main__":
