@@ -6,9 +6,10 @@ from typing import Optional
 from bible_notes import BibleNote
 from dataclasses import dataclass, field
 
-child_id_regex = "^@__id([a-z0-9]+)@$"
-_id_regex = "^@_id([a-z0-9]+)@$"
-tags_regex = "^@tags\n^([\s\S]+)\n^@$"
+CHILD_ID_REGEX = "^@__id([a-z0-9]+)@$"
+_ID_REGEX = "^@_id([a-z0-9]+)@$"
+TAGS_REGEX = "^@tags\n^([\s\S]+)\n^@$"
+VERSE_REGEX = "^@(\/.*)@$"
 
 
 @dataclass
@@ -71,7 +72,7 @@ class BibleNoteMD(BibleNote):
         """
         # Extract/Create _id.
         if not self._id:
-            _id = re.search(_id_regex, parent_text, flags=re.M)
+            _id = re.search(_ID_REGEX, parent_text, flags=re.M)
 
             _id = uuid.uuid4() if not _id else _id.group(1)
 
@@ -102,7 +103,7 @@ class BibleNoteMD(BibleNote):
         """
 
         # Extract tags.
-        match = re.search(tags_regex, parent_text, re.M)
+        match = re.search(TAGS_REGEX, parent_text, re.M)
         if not match:
             return
 
@@ -132,7 +133,7 @@ class BibleNoteMD(BibleNote):
         """
 
         # Inherit from child note ids in parent.
-        child_ids_in_parent = re.findall(child_id_regex, parent_text, flags=re.M)
+        child_ids_in_parent = re.findall(CHILD_ID_REGEX, parent_text, flags=re.M)
         for child_id in child_ids_in_parent:
             child_note = BibleNote.get(_id=child_id)
             if child_note:

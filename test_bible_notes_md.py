@@ -2,7 +2,13 @@ import unittest
 import re
 from unittest.mock import patch
 from datetime import datetime
-from bible_notes_md import BibleNoteMD, child_id_regex, _id_regex, tags_regex
+from bible_notes_md import (
+    BibleNoteMD,
+    CHILD_ID_REGEX,
+    TAGS_REGEX,
+    _ID_REGEX,
+    VERSE_REGEX,
+)
 
 h0 = """asdlkfja;sdf
 
@@ -331,7 +337,7 @@ class TestBibleNotesMD(unittest.TestCase):
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):
-    def test_child_id_regex(self):
+    def test_CHILD_ID_REGEX(self):
         child_ids = ["@__id123402990@", "@__id18301910@", "@__id9109909209ajslkdfj@"]
 
         h0_w_child_ids = h0 + "\n@_id120919@\n" + "\n".join(child_ids)
@@ -342,15 +348,15 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
             child_id.replace("__id", "").replace("@", "") for child_id in child_ids
         ]
 
-        child_ids_h0 = re.findall(child_id_regex, h0_w_child_ids, flags=re.M)
+        child_ids_h0 = re.findall(CHILD_ID_REGEX, h0_w_child_ids, flags=re.M)
 
         self.assertEqual(child_ids_h0, child_ids)
 
-        child_ids_h1 = re.findall(child_id_regex, h1_w_child_ids, flags=re.M)
+        child_ids_h1 = re.findall(CHILD_ID_REGEX, h1_w_child_ids, flags=re.M)
 
         self.assertEqual(child_ids_h1, child_ids)
 
-    def test_id_regex(self):
+    def test_ID_REGEX(self):
         _ids = ["@_id123402990@", "@_id18301910@", "@_id9109909209ajslkdfj@"]
 
         h0_w_ids = h0 + "\n" + "\n".join(_ids)
@@ -359,11 +365,11 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
         # remove @_id and @ from child ids.
         _ids = [_id.replace("_id", "").replace("@", "") for _id in _ids]
 
-        _ids_h0 = re.findall(_id_regex, h0_w_ids, flags=re.M)
+        _ids_h0 = re.findall(_ID_REGEX, h0_w_ids, flags=re.M)
 
         self.assertEqual(_ids_h0, _ids)
 
-        _ids_h1 = re.findall(_id_regex, h1_w_ids, flags=re.M)
+        _ids_h1 = re.findall(_ID_REGEX, h1_w_ids, flags=re.M)
 
         self.assertEqual(_ids_h1, _ids)
 
@@ -390,11 +396,11 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
 
         self.assertEqual(match.group(0), "\n## @ ")
 
-    def test_tags_regex(self):
+    def test_TAGS_REGEX(self):
 
         expected_output = """tag_key 1: tag_value 1\ntag 2\ntag 3\ntag 4\ntag_key2:"""
 
-        match = re.search(tags_regex, h0, re.M)
+        match = re.search(TAGS_REGEX, h0, re.M)
 
         self.assertIsNotNone(match)
         self.assertEqual(match.group(1), expected_output)
