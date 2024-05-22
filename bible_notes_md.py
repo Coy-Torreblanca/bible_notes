@@ -21,6 +21,12 @@ class BibleNoteMD(BibleNote):
     def __post_init__(self):
         super().__post_init__()
 
+        self.note_text = self.note_text.strip()
+
+        # If note starts with a header, then set starting header_level to 1.
+        if self.note_text.startswith("# @ "):
+            self.header_level = 1
+
         if not self._id:
             self.extract()
 
@@ -89,7 +95,7 @@ class BibleNoteMD(BibleNote):
 
         # Extract theme.
         match = re.search(THEME_REGEX, parent_text, re.M)
-        self.theme = match if not match else match.group(1)
+        self.theme = match if not match else match.group(1).strip()
 
         # Extract attributes from child_ids.
 
