@@ -1,6 +1,7 @@
 # https://bible-notes.atlassian.net/wiki/spaces/~63cdc33695cff7f585c2a3dd/pages/33861/BNMD
 
 import re
+import uuid
 from typing import Optional
 from bible_notes import BibleNote
 from dataclasses import dataclass, field
@@ -68,8 +69,22 @@ class BibleNoteMD(BibleNote):
         Args:
             parent_text (str): Text of note without child note text.
         """
+        # Extract/Create _id.
+        if not self._id:
+            _id = re.search(_id_regex, parent_text, flags=re.M)
+
+            _id = uuid.uuid4() if not _id else _id.group(1)
+
+            self._id = _id
+
+        # If note is in db and not modified, set attributes from db.
+        if self._set_self_from_db():
+            return
+
         # Extract tags.
         self._process_tag_text(parent_text=parent_text)
+
+        # Extract verse_references.
 
         # Extract attributes from child_ids.
 
@@ -123,34 +138,25 @@ class BibleNoteMD(BibleNote):
             if child_note:
                 self._inherit_child_note(child_note=child_note)
 
-    def _set_self_from_db(self, parent_note_text: str) -> bool:
+    def _set_self_from_db(self) -> bool:
         """Set attributes from mongodb if text matches note in mongodb.
-
-        Args:
-            parent_note_text (str): The note of most parent text without child note text.
-
+        Extract and set _id field.
 
         Returns:
             bool: Whether self attributes could be set from mongodb.
         """
 
-        if not self._id:
-            _id = re.search(_id_regex, parent_note_text, flags=re.M)
+        assert self._id
 
-            if not _id:
-                return False
+        bible_note = BibleNoteMD.get(_id=self._id)
 
-            _id = _id.group(1)
+        # Set this object equal to the object in the database for simplicity.
+        if bible_note.note_text == self.note_text:
+            for attribute, value in bible_note.to_db_dict().items():
+                self.__setattr__(attribute, value)
+            return True
 
-            bible_note = BibleNoteMD.get(_id=_id)
-
-            # Set this object equal to the object in the database for simplicity.
-            if bible_note.note_text == self.note_text:
-                for attribute, value in bible_note.to_db_dict().items():
-                    self.__setattr__(attribute, value)
-                return True
-
-            return False
+        return False
 
     def _inherit_child_note(self, child_note: "BibleNoteMD") -> None:
         """Inherit attributes from the provided child note to this object.

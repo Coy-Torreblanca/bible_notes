@@ -248,24 +248,17 @@ class TestBibleNotesMD(unittest.TestCase):
 
         note_in_mongo_dict = note_in_mongo.to_db_dict()
 
-        parent_note = BibleNoteMD._split_notes(
-            note_text=note_text, header_level_of_parent=0
-        )[0]
-
-        # Pass id, then remove it, to bypass extraction.
-        new_bible_note = BibleNoteMD(_id="190190", note_text=note_text)
-        new_bible_note._id = None
+        new_bible_note = BibleNoteMD(_id=note_id, note_text=note_text)
 
         # Set attritubes of new bible note.
-        self.assertTrue(new_bible_note._set_self_from_db(parent_note))
+        self.assertTrue(new_bible_note._set_self_from_db())
         self.assertEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
 
         # Test that self is not replaced if note text is different.
         # Pass id, then remove it, to bypass extraction.
-        new_bible_note = BibleNoteMD(_id="190190", note_text=note_text + ".")
-        new_bible_note._id = None
+        new_bible_note = BibleNoteMD(_id=note_id, note_text=note_text + ".")
 
-        self.assertFalse(new_bible_note._set_self_from_db(parent_note))
+        self.assertFalse(new_bible_note._set_self_from_db())
         self.assertNotEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
 
     @patch("bible_notes_md.BibleNote.get")
