@@ -11,6 +11,7 @@ _ID_REGEX = "^@_id([a-z0-9]+)@$"
 TAGS_REGEX = "^@tags\n^([\s\S]+)\n^@$"
 VERSE_REGEX = "@(\/.*)@"
 THEME_REGEX = "^@theme$\n^([\s\S]+?)^@$"
+TITLE_REGEX = "^{additional_level_hashtags} @ (.*)$"
 
 
 @dataclass
@@ -96,6 +97,16 @@ class BibleNoteMD(BibleNote):
         # Extract theme.
         match = re.search(THEME_REGEX, parent_text, re.M)
         self.theme = match if not match else match.group(1).strip()
+
+        # Extract Title.
+        if not self.title and self.header_level > 0:
+            # If title is not the filename, extract it from next header.
+            match = re.search(
+                TITLE_REGEX.format("#" * self.header_level), parent_text, re.M
+            )
+
+            if match:
+                self.title = match.group(1)
 
         # Extract attributes from child_ids.
 

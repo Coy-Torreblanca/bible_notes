@@ -9,6 +9,7 @@ from bible_notes_md import (
     _ID_REGEX,
     VERSE_REGEX,
     THEME_REGEX,
+    TITLE_REGEX,
 )
 
 h0 = """asdlkfja;sdf
@@ -426,6 +427,26 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
             self.assertIsNotNone(match)
             theme = match.group(1)
             self.assertEqual(theme, expected_output)
+
+    def test_TITLE_REGEX(self):
+        input_output_map = {
+            h0: (None, 0),
+            h1: ("Note One Title", 1),
+            h2: ("Child Note Title (Note Two)", 2),
+            h2_2: ("Child Note Title (Note Three)", 2),
+            h3: ("Child Child Note Title (Note Three)", 3),
+        }
+
+        for text, value in input_output_map.items():
+            expected_output, header_level = value
+            regex = TITLE_REGEX.format(additional_level_hashtags="#" * header_level)
+            match = re.search(regex, text, re.M)
+
+            if not match:
+                self.assertIsNone(expected_output)
+                continue
+
+            self.assertEqual(match.group(1), expected_output)
 
 
 if __name__ == "__main__":
