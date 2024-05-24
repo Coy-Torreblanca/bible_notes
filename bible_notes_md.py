@@ -145,21 +145,6 @@ class BibleNoteMD(BibleNote):
                 # This is a kv tag with a null key.
                 self.tags.add(split_tag[0])
 
-    def _process_child_ids_in_parent_text(self, parent_text: str) -> None:
-        """Retrieve child ids from parent note.
-        Inherit child notes.
-
-        Args:
-            parent_text (str): Text of parent note wihout child note text.
-        """
-
-        # Inherit from child note ids in parent.
-        child_ids_in_parent = re.findall(CHILD_ID_REGEX, parent_text, flags=re.M)
-        for child_id in child_ids_in_parent:
-            child_note = BibleNote.get(_id=child_id)
-            if child_note:
-                self._inherit_child_note(child_note=child_note)
-
     def _set_self_from_db(self) -> bool:
         """Set attributes from mongodb if text matches note in mongodb.
         Extract and set _id field.
@@ -179,6 +164,21 @@ class BibleNoteMD(BibleNote):
             return True
 
         return False
+
+    def _process_child_ids_in_parent_text(self, parent_text: str) -> None:
+        """Retrieve child ids from parent note.
+        Inherit child notes.
+
+        Args:
+            parent_text (str): Text of parent note wihout child note text.
+        """
+
+        # Inherit from child note ids in parent.
+        child_ids_in_parent = re.findall(CHILD_ID_REGEX, parent_text, flags=re.M)
+        for child_id in child_ids_in_parent:
+            child_note = BibleNote.get(_id=child_id)
+            if child_note:
+                self._inherit_child_note(child_note=child_note)
 
     def _inherit_child_note(self, child_note: "BibleNoteMD") -> None:
         """Inherit attributes from the provided child note to this object.
