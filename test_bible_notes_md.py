@@ -14,6 +14,8 @@ from bible_notes_md import (
 
 h0 = """asdlkfja;sdf
 
+@_id103892083409284@
+
 @theme
 these is the theme text
 there is two lines
@@ -25,7 +27,11 @@ tag 2
 tag 3
 tag 4
 tag_key2:
-@"""
+@
+
+@/Psalms/40/1-4@
+
+"""
 
 h1 = """
 # @ Note One Title
@@ -37,6 +43,7 @@ there is two lines
 
 @tags
 tag_key 1: tag_value 1
+tag_key 2 : tag_value 2   
 tag 2
 tag 3
 tag 4
@@ -117,7 +124,7 @@ class TestBibleNotesMD(unittest.TestCase):
         # Test level one split.
         note_split_level_1 = BibleNoteMD._split_notes(test_note, 0)
 
-        self.assertEqual(note_split_level_1[0], h0)
+        self.assertEqual(note_split_level_1[0], h0.strip())
 
         # Note - note split strips note.
         self.assertEqual(note_split_level_1[1], f"{h1}\n{h2}".strip())
@@ -224,6 +231,26 @@ class TestBibleNotesMD(unittest.TestCase):
         del parent_note_dict["key_value_tags"]
         self.assertEqual(new_parent_dict, parent_note_dict)
 
+    def test_set_self_from_db_no_mongo_data(self):
+        """Test self from db when there is no note found in Mongo."""
+
+        # Create preliminary data required
+        note_id = "12234509147018390"
+
+        note_text = f"@_id{note_id}@\n" + test_note[:]
+
+        note_in_mongo = BibleNoteMD(
+            _id=note_id,
+            note_text=note_text,
+            referenced_notes={"1901830113", "910930909"},
+            referenced_verses={"/John1/1/1", "/Genesis/1/1"},
+            tags={"tagged"},
+            key_value_tags={"tagged": True},
+        )
+
+        # Ensure no error if there is no note found in MongoDB.
+        note_in_mongo._set_self_from_db()
+
     @patch("bible_notes_md.BibleNoteMD.get")
     def test_set_self_from_db(self, mock_get_bible_note):
         # Create preliminary data required
@@ -239,6 +266,9 @@ class TestBibleNotesMD(unittest.TestCase):
             tags={"tagged"},
             key_value_tags={"tagged": True},
         )
+
+        # Ensure no error if there is no note found in MongoDB.
+        note_in_mongo._set_self_from_db()
 
         # Create mock function which will only except target id and return mongo note.
 
@@ -308,7 +338,7 @@ class TestBibleNotesMD(unittest.TestCase):
         )
 
         parent_note = BibleNoteMD(
-            _id="id1903910193910", note_text=parent_text, header_level=1
+            _id="1903910193910", note_text=parent_text, header_level=1
         )
 
         split_notes = parent_note._split_notes(
@@ -325,14 +355,66 @@ class TestBibleNotesMD(unittest.TestCase):
 
         self.assertEqual(parent_note.tags, child_tags | child_tags_2)
 
-    def _test_process_tags(self):
+    def test_process_tags(self):
 
         bible_note = BibleNoteMD(_id="1234")
 
         bible_note._process_tag_text(h0)
 
         self.assertEqual(bible_note.key_value_tags, {"tag_key 1": "tag_value 1"})
-        self.assertEqual(bible_note.tags, {"tag2", "tag3", "tag4"})
+        self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4", "tag_key2"})
+
+        bible_note = BibleNoteMD(_id="1234")
+
+        bible_note._process_tag_text(h1)
+
+        self.assertEqual(
+            bible_note.key_value_tags,
+            {"tag_key 1": "tag_value 1", "tag_key 2": "tag_value 2"},
+        )
+
+        self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4"})
+
+    def test_extract_attr_from_parent_text(self) -> None:
+
+        bible_note = BibleNoteMD(_id="1")
+
+        # H0 test
+        bible_note._extract_attr_from_parent_text(h0)
+
+        self.assertEqual(bible_note.referenced_verses, {"/Psalms/40/1-4"})
+
+        self.assertIsNone(bible_note.title)
+
+        self.assertEqual(
+            bible_note.theme, "these is the theme text\nthere is two lines\n".strip()
+        )
+
+        self.assertEqual(bible_note.key_value_tags, {"tag_key 1": "tag_value 1"})
+
+        self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4", "tag_key2"})
+
+        # H1 test
+        bible_note = BibleNoteMD(_id="1", header_level=1)
+
+        bible_note._extract_attr_from_parent_text(h1)
+
+        self.assertEqual(
+            bible_note.referenced_verses, {"/asv/John/1/1-10", "/Psalms/39/10-23"}
+        )
+
+        self.assertEqual(bible_note.title, "Note One Title")
+
+        self.assertEqual(
+            bible_note.theme, "these is the theme text\nthere is two lines\n".strip()
+        )
+
+        self.assertEqual(
+            bible_note.key_value_tags,
+            {"tag_key 1": "tag_value 1", "tag_key 2": "tag_value 2"},
+        )
+
+        self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4"})
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):
@@ -356,21 +438,29 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
         self.assertEqual(child_ids_h1, child_ids)
 
     def test_ID_REGEX(self):
-        _ids = ["@_id123402990@", "@_id18301910@", "@_id9109909209ajslkdfj@"]
+        # Create ids to test extraction for.
+        h0_ids = ["@_id123402990@", "@_id18301910@"]
+        h1_ids = h0_ids[:]
 
-        h0_w_ids = h0 + "\n" + "\n".join(_ids)
-        h1_w_ids = h1 + "\n" + "\n".join(_ids)
+        # Insert them into notes.
+        h0_w_ids = h0 + "\n" + "\n".join(h0_ids)
+        h1_w_ids = h1 + "\n" + "\n".join(h1_ids)
+
+        # Add h0 hardcoded id.
+        h0_natural_id = "103892083409284"
+        h0_ids.insert(0, h0_natural_id)
 
         # remove @_id and @ from child ids.
-        _ids = [_id.replace("_id", "").replace("@", "") for _id in _ids]
+        h0_ids = [_id.replace("_id", "").replace("@", "") for _id in h0_ids]
+        h1_ids = [_id.replace("_id", "").replace("@", "") for _id in h1_ids]
 
         _ids_h0 = re.findall(_ID_REGEX, h0_w_ids, flags=re.M)
 
-        self.assertEqual(_ids_h0, _ids)
+        self.assertEqual(_ids_h0, h0_ids)
 
         _ids_h1 = re.findall(_ID_REGEX, h1_w_ids, flags=re.M)
 
-        self.assertEqual(_ids_h1, _ids)
+        self.assertEqual(_ids_h1, h1_ids)
 
     def test_header_regex(self):
 
@@ -407,6 +497,7 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
     def test_VERSE_REGEX(self):
 
         input_output_map = {
+            h0: ["/Psalms/40/1-4"],
             h1: ["/asv/John/1/1-10", "/Psalms/39/10-23"],
             h2: ["/kjv/Matthew/6-7", "/Luke/2/3-9", "/Mark/13/4-8"],
         }

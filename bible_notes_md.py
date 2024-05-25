@@ -22,14 +22,12 @@ class BibleNoteMD(BibleNote):
     def __post_init__(self):
         super().__post_init__()
 
-        self.note_text = self.note_text.strip()
+        if self.note_text:
+            self.note_text = self.note_text.strip()
 
-        # If note starts with a header, then set starting header_level to 1.
-        if self.note_text.startswith("# @ "):
-            self.header_level = 1
-
-        if not self._id:
-            self.extract()
+            # If note starts with a header, then set starting header_level to 1.
+            if self.note_text.startswith("# @ "):
+                self.header_level = 1
 
     def extract(self) -> None:
         """Extract object attributes from note_text."""
@@ -38,12 +36,29 @@ class BibleNoteMD(BibleNote):
         split_notes = self._split_notes(self.note_text, self.header_level)
         parent_text = split_notes[0]
 
+        if not self._id:
+            _id = re.search(_ID_REGEX, parent_text, flags=re.M)
+
+            if not _id:
+                _id = uuid.uuid4()
+
+            else:
+                _id = _id.group(1)
+
+            self._id = _id
+
         self._extract_attr_from_parent_text(parent_text=parent_text)
+
+        # TODO Move to split note area as you will need to add text by conca
+        # Extract/Create _id.
 
         children_notes = self._split_notes[1:]
 
         # if not _id:
         # raise ValueError("Note text did not contain a valid _id field.")
+
+        # For each child, create a note and upload to mongo, extract _id of child note.
+        # Replace self.text with parent note + child note ids.
 
     @classmethod
     def _split_notes(cls, note_text: str, header_level_of_parent: int) -> list[str]:
@@ -64,7 +79,7 @@ class BibleNoteMD(BibleNote):
         split_notes[0] = split_notes[0].strip()
         for i in range(1, len(split_notes)):
             split_notes[i] = (
-                f"{ header_of_immediate_child_notes }{ split_notes[i].strip() }"
+                f"{ header_of_immediate_child_notes}{ split_notes[i].strip() }"
             )
 
         return split_notes
@@ -76,13 +91,6 @@ class BibleNoteMD(BibleNote):
         Args:
             parent_text (str): Text of note without child note text.
         """
-        # Extract/Create _id.
-        if not self._id:
-            _id = re.search(_ID_REGEX, parent_text, flags=re.M)
-
-            _id = uuid.uuid4() if not _id else _id.group(1)
-
-            self._id = _id
 
         # If note is in db and not modified, set attributes from db.
         if self._set_self_from_db():
@@ -102,13 +110,13 @@ class BibleNoteMD(BibleNote):
         if not self.title and self.header_level > 0:
             # If title is not the filename, extract it from next header.
             match = re.search(
-                TITLE_REGEX.format("#" * self.header_level), parent_text, re.M
+                TITLE_REGEX.format(additional_level_hashtags="#" * self.header_level),
+                parent_text,
+                re.M,
             )
 
             if match:
                 self.title = match.group(1)
-
-        # Extract attributes from child_ids.
 
     def _process_tag_text(self, parent_text: str) -> None:
         """Test tag text into kv and regular tags.
@@ -122,7 +130,6 @@ class BibleNoteMD(BibleNote):
             tag 2
             @
         """
-
         # Extract tags.
         match = re.search(TAGS_REGEX, parent_text, re.M)
         if not match:
@@ -139,7 +146,7 @@ class BibleNoteMD(BibleNote):
 
             if split_tag[1]:
                 # This is a kv tag.
-                self.key_value_tags[split_tag[0]] = split_tag[1]
+                self.key_value_tags[split_tag[0].strip()] = split_tag[1].strip()
 
             else:
                 # This is a kv tag with a null key.
@@ -158,7 +165,7 @@ class BibleNoteMD(BibleNote):
         bible_note = BibleNoteMD.get(_id=self._id)
 
         # Set this object equal to the object in the database for simplicity.
-        if bible_note.note_text == self.note_text:
+        if bible_note and bible_note.note_text == self.note_text:
             for attribute, value in bible_note.to_db_dict().items():
                 self.__setattr__(attribute, value)
             return True

@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Optional
 from verse import Verse
-from utilities import generate_random_id
 from db.driver import MongoDriver
 from dataclasses import dataclass, field, asdict
 
@@ -28,6 +27,10 @@ class BibleNote:
     note_text: str = None
     # Summary of note_text.
     theme: str = None
+
+    # Some name for the note.
+    title: str = None
+
     # Tags describing Note.
     key_value_tags: list[dict] = field(default_factory=lambda: {})
     tags: set[str] = field(default_factory=lambda: set())
@@ -48,14 +51,9 @@ class BibleNote:
         Note - If you need existing note, use the get method.
         """
 
-        # Create note_id if one not provided.
-        new_note = self._id is None
-
-        if new_note:
-            self._id = generate_random_id()
-
-        else:
+        if self._id and self.exists(self._id):
             # Remove deleted referenced notes from note text.
+            # Note when a note is deleted, all referenced_notes in DB are updated.
             current_note_references = self.get_note_references()
 
             for referenced_note_id in self.referenced_notes:
