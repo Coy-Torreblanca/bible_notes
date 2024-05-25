@@ -249,7 +249,7 @@ class TestBibleNotesMD(unittest.TestCase):
         )
 
         # Ensure no error if there is no note found in MongoDB.
-        note_in_mongo._set_self_from_db()
+        self.assertFalse(note_in_mongo.set_self_from_db())
 
     @patch("bible_notes_md.BibleNoteMD.get")
     def test_set_self_from_db(self, mock_get_bible_note):
@@ -267,9 +267,6 @@ class TestBibleNotesMD(unittest.TestCase):
             key_value_tags={"tagged": True},
         )
 
-        # Ensure no error if there is no note found in MongoDB.
-        note_in_mongo._set_self_from_db()
-
         # Create mock function which will only except target id and return mongo note.
 
         def mock_function_side_affect(_id):
@@ -286,15 +283,8 @@ class TestBibleNotesMD(unittest.TestCase):
         new_bible_note = BibleNoteMD(_id=note_id, note_text=note_text)
 
         # Set attritubes of new bible note.
-        self.assertTrue(new_bible_note._set_self_from_db())
+        self.assertTrue(new_bible_note.set_self_from_db())
         self.assertEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
-
-        # Test that self is not replaced if note text is different.
-        # Pass id, then remove it, to bypass extraction.
-        new_bible_note = BibleNoteMD(_id=note_id, note_text=note_text + ".")
-
-        self.assertFalse(new_bible_note._set_self_from_db())
-        self.assertNotEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
 
     @patch("bible_notes_md.BibleNote.get")
     def test_process_child_ids_in_parent(self, bible_note_md_get):

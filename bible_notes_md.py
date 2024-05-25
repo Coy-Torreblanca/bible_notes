@@ -92,10 +92,6 @@ class BibleNoteMD(BibleNote):
             parent_text (str): Text of note without child note text.
         """
 
-        # If note is in db and not modified, set attributes from db.
-        if self._set_self_from_db():
-            return
-
         # Extract tags.
         self._process_tag_text(parent_text=parent_text)
 
@@ -152,7 +148,7 @@ class BibleNoteMD(BibleNote):
                 # This is a kv tag with a null key.
                 self.tags.add(split_tag[0])
 
-    def _set_self_from_db(self) -> bool:
+    def set_self_from_db(self) -> bool:
         """Set attributes from mongodb if text matches note in mongodb.
         Extract and set _id field.
 
@@ -165,7 +161,7 @@ class BibleNoteMD(BibleNote):
         bible_note = BibleNoteMD.get(_id=self._id)
 
         # Set this object equal to the object in the database for simplicity.
-        if bible_note and bible_note.note_text == self.note_text:
+        if bible_note:
             for attribute, value in bible_note.to_db_dict().items():
                 self.__setattr__(attribute, value)
             return True
