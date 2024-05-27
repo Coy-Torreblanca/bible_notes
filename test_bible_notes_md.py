@@ -337,8 +337,15 @@ class TestBibleNotesMD(unittest.TestCase):
 
         bible_note = BibleNoteMD(_id="1")
 
+        child_id = "13902943"
+
+        child_id_2 = "8503708asjk"
+
         # H0 test
-        bible_note._extract_attr_from_parent_text(h0)
+
+        parent_text = h0 + "\n" + f"@__id{child_id}@" + "\n" + f"@__id{child_id_2}@"
+
+        bible_note._extract_attr_from_parent_text(parent_text=parent_text)
 
         self.assertEqual(bible_note.referenced_verses, {"/Psalms/40/1-4"})
 
@@ -352,10 +359,14 @@ class TestBibleNotesMD(unittest.TestCase):
 
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4", "tag_key2"})
 
+        self.assertEqual(bible_note.referenced_notes, {child_id, child_id_2})
+
         # H1 test
         bible_note = BibleNoteMD(_id="1", header_level=1)
 
-        bible_note._extract_attr_from_parent_text(h1)
+        parent_text = h1 + "\n" + f"@__id{child_id}@" + "\n" + f"@__id{child_id_2}@"
+
+        bible_note._extract_attr_from_parent_text(parent_text=parent_text)
 
         self.assertEqual(
             bible_note.referenced_verses, {"/asv/John/1/1-10", "/Psalms/39/10-23"}
@@ -373,6 +384,8 @@ class TestBibleNotesMD(unittest.TestCase):
         )
 
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4"})
+
+        self.assertEqual(bible_note.referenced_notes, {child_id, child_id_2})
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):

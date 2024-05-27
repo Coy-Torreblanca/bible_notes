@@ -141,8 +141,11 @@ class BibleNoteMD(BibleNote):
         # Extract tags.
         self._process_tag_text(parent_text=parent_text)
 
-        # Extract verse_references.
+        # Extract referenced_verses.
         self.referenced_verses = set(re.findall(VERSE_REGEX, parent_text, re.M))
+
+        # Extract referenced_notes.
+        self._process_note_references_in_parent_text(parent_text=parent_text)
 
         # Extract theme.
         match = re.search(THEME_REGEX, parent_text, re.M)
