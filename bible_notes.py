@@ -53,7 +53,7 @@ class BibleNote:
     child_ids: list[str] = field(default_factory=lambda: [])
 
     # List of notes which reference this note in the child_notes attributes.
-    parent_ids: list[str] = field(default_factory=lambda: [])
+    parent_ids: list[str] = field(default_factory=lambda: set())
 
     @classmethod
     def _generate_new_id(cls) -> str:
@@ -78,6 +78,7 @@ class BibleNote:
 
         data["referenced_verses"] = set(data["referenced_verses"])
         data["referenced_notes"] = set(data["referenced_notes"])
+        data["parent_ids"] = set(data["parent_ids"])
         data["tags"] = set(data["tags"])
 
         return cls(**data)
@@ -94,10 +95,10 @@ class BibleNote:
             bool: If the document was deleted.
         """
 
-        # Delete references to note.
-        # MongoDriver.get_client()[cls._MONGO_DATABASE][
-        # cls._MONGO_COLLECTION
-        # ].update_many({}, {"$pull": {"referenced_notes": _id}})
+        # Delete child references to this note.
+        MongoDriver.get_client()[cls._MONGO_DATABASE][
+            cls._MONGO_COLLECTION
+        ].update_many({}, {"$pull": {"parent_ids": _id}})
 
         # Delete Note.
         result = MongoDriver.get_client()[cls._MONGO_DATABASE][
@@ -152,8 +153,10 @@ class BibleNote:
         self_dict = self.to_db_dict()
 
         # Convert sets to lists as Mongo does not accept lists.
+        # TODO - Does Mongo not have a set data type?
         self_dict["referenced_verses"] = list(self_dict["referenced_verses"])
         self_dict["referenced_notes"] = list(self_dict["referenced_notes"])
+        self_dict["parent_ids"] = list(self_dict["parent_ids"])
         self_dict["tags"] = list(self_dict["tags"])
 
         MongoDriver.get_client()[self._MONGO_DATABASE][

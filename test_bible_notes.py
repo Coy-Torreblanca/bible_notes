@@ -137,7 +137,7 @@ class TestNotes(unittest.TestCase):
             pass
 
     def test_deletion_of_references(self):
-        """Ensure when a note referenced by another is deleted, the reference is note deleted."""
+        """Ensure when a note referenced by another is deleted, the reference is not deleted."""
 
         # Create note that will be referenced by another.
         referenced_note = BibleNote(
@@ -165,6 +165,39 @@ class TestNotes(unittest.TestCase):
 
         # Ensure deleted note no longer is still referenced.
         self.assertEqual(referencing_note.referenced_notes, {self.note_id})
+
+    def test_deletion_of_parents(self):
+        """Ensure when a note is deleted, children no longer reference it in parent_ids."""
+
+        # Create note that will be the parent of another.
+        parent_note = BibleNote(
+            _id=self.note_id,
+            theme="askdfl",
+            note_text="asdf",
+            tags=["asdf"],
+            child_ids=[self.note_id2],
+        )
+
+        # Create note that is the child of the original.
+        child_note = BibleNote(
+            _id=self.note_id2,
+            theme="askdfl",
+            note_text="asdf",
+            tags={"asdf"},
+            parent_ids={self.note_id},
+        )
+
+        parent_note.upsert()
+        child_note.upsert()
+
+        # Delete referenced note.
+        BibleNote.delete(self.note_id)
+
+        # Refresh referencing note.
+        child_note = BibleNote.get(self.note_id2)
+
+        # Ensure deleted note no longer is still referenced.
+        self.assertEqual(child_note.parent_ids, set())
 
     def test_valid_refences(self):
         """Ensure valid refences can be upserted."""
