@@ -1,3 +1,4 @@
+from uuid import uuid4
 from datetime import datetime
 from typing import Optional
 from verse import Verse
@@ -41,9 +42,17 @@ class BibleNote:
     # List of verses referenced in this note.
     # Values should be verse_ids.
     referenced_verses: set[str] = field(default_factory=lambda: set())
+
     # Set of notes referenced in this note.
     # Values should be note_ids.
     referenced_notes: set[str] = field(default_factory=lambda: set())
+
+    # List of notes which, when appended to this note's text, make up the original note.
+    # Values shoudl be note_ids.
+    child_ids: list[str] = field(default_factory=lambda: [])
+
+    # List of notes which reference this note in the child_notes attributes.
+    parent_ids: list[str] = field(default_factory=lambda: [])
 
     def __post_init__(self):
         """
@@ -61,6 +70,10 @@ class BibleNote:
                     # Deleted note is referenced in text.
                     # Delete note referenced in text.
                     self.delete_note_reference_from_text(referenced_note_id)
+
+    @classmethod
+    def _generate_new_id(cls) -> str:
+        return str(uuid4())
 
     def update_note_text(self):
         """Update note text and dependent attributes."""

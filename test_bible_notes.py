@@ -1,7 +1,6 @@
 import unittest
 from datetime import datetime
 from bible_notes import BibleNote
-from utilities import generate_random_id
 from db.driver import MongoDriver
 
 
@@ -9,8 +8,9 @@ class TestNotes(unittest.TestCase):
     # TODO - Before test create a random id which all new objects should use.
     # TODO - After test delete random ids.
     def setUp(self):
-        self.note_id = generate_random_id()
-        self.note_id2 = generate_random_id()
+        self.note_id = BibleNote._generate_new_id()
+        self.note_id2 = BibleNote._generate_new_id()
+        assert self.note_id != self.note_id2
 
     def tearDown(self):
         for note_id in [self.note_id, self.note_id2]:
