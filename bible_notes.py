@@ -44,6 +44,7 @@ class BibleNote:
     referenced_verses: set[str] = field(default_factory=lambda: set())
 
     # Set of notes referenced in this note.
+    # NOTE - referenced notes are not expanded in parent notes.
     # Values should be note_ids.
     referenced_notes: set[str] = field(default_factory=lambda: set())
 
@@ -54,45 +55,12 @@ class BibleNote:
     # List of notes which reference this note in the child_notes attributes.
     parent_ids: list[str] = field(default_factory=lambda: [])
 
-    def __post_init__(self):
-        """
-        Generate _id. Removed deleted referenced notes from note text.
-        Note - If you need existing note, use the get method.
-        """
-
-        if self._id and self.exists(self._id):
-            # Remove deleted referenced notes from note text.
-            # Note when a note is deleted, all referenced_notes in DB are updated.
-            current_note_references = self.get_note_references()
-
-            for referenced_note_id in self.referenced_notes:
-                if referenced_note_id not in current_note_references:
-                    # Deleted note is referenced in text.
-                    # Delete note referenced in text.
-                    self.delete_note_reference_from_text(referenced_note_id)
-
     @classmethod
     def _generate_new_id(cls) -> str:
         return str(uuid4())
 
     def update_note_text(self):
         """Update note text and dependent attributes."""
-        pass
-
-    def get_note_references(self) -> set:
-        """Parse note text for referenced notes.
-
-        Returns:
-            set: Referenced notes in note text.
-        """
-        return set()
-
-    def delete_note_reference_from_text(self, note_id: str) -> None:
-        """Delete referenced note in note text.
-
-        Args:
-            note_id (str): Note id to delete from note text.
-        """
         pass
 
     @classmethod
@@ -127,9 +95,9 @@ class BibleNote:
         """
 
         # Delete references to note.
-        MongoDriver.get_client()[cls._MONGO_DATABASE][
-            cls._MONGO_COLLECTION
-        ].update_many({}, {"$pull": {"referenced_notes": _id}})
+        # MongoDriver.get_client()[cls._MONGO_DATABASE][
+        # cls._MONGO_COLLECTION
+        # ].update_many({}, {"$pull": {"referenced_notes": _id}})
 
         # Delete Note.
         result = MongoDriver.get_client()[cls._MONGO_DATABASE][
@@ -167,13 +135,6 @@ class BibleNote:
         # Ensure all required fields are present.
         if not self._id or not self.note_text or not self.theme or not self.tags:
             raise ValueError("Required data not present in Object.")
-
-        # Ensure all references exist.
-        for note_id in self.referenced_notes:
-            if not BibleNote.exists(note_id=note_id):
-                raise ValueError(
-                    f"Attempting to reference a non-existing note. Note_id: {note_id}"
-                )
 
         for verse_id in self.referenced_verses:
             if not Verse.exists(verse_id=verse_id):

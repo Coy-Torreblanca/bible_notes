@@ -120,22 +120,6 @@ class TestNotes(unittest.TestCase):
             except ValueError:
                 pass
 
-        # Ensure bible notes with invalid note references cannot be inserted.
-        invalid_bible_note = BibleNote(
-            _id=self.note_id,
-            note_text="asdf",
-            theme="asdf",
-            tags={"asdf"},
-            referenced_notes={"invalid_note_id"},
-        )
-
-        try:
-            invalid_bible_note.upsert()
-            self.fail(f"Invalid bible note successfully upserted: {invalid_bible_note}")
-
-        except ValueError:
-            pass
-
         # Ensure bible notes with invalid verse references cannot be inserted.
         invalid_bible_note = BibleNote(
             _id=self.note_id,
@@ -153,7 +137,7 @@ class TestNotes(unittest.TestCase):
             pass
 
     def test_deletion_of_references(self):
-        """Ensure when a note referenced by another is deleted, the reference is deleted."""
+        """Ensure when a note referenced by another is deleted, the reference is note deleted."""
 
         # Create note that will be referenced by another.
         referenced_note = BibleNote(
@@ -179,8 +163,8 @@ class TestNotes(unittest.TestCase):
         # Refresh referencing note.
         referencing_note = BibleNote.get(self.note_id2)
 
-        # Ensure deleted note no longer is referenced.
-        self.assertEqual(referencing_note.referenced_notes, set())
+        # Ensure deleted note no longer is still referenced.
+        self.assertEqual(referencing_note.referenced_notes, {self.note_id})
 
     def test_valid_refences(self):
         """Ensure valid refences can be upserted."""
