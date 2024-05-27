@@ -233,7 +233,6 @@ class BibleNoteMD(BibleNote):
     def _inherit_child_note(self, child_note: "BibleNoteMD") -> None:
         """Inherit attributes from the provided child note to this object.
         NOTE - Does not modify self.note_text.
-        NOTE - Only location where referenced_notes should be modified.
 
         Args:
             child_note (BibleNoteMD): Child note to inherit from.
@@ -244,9 +243,8 @@ class BibleNoteMD(BibleNote):
                 if key not in self.tags:
                     self.key_value_tags[key] = value
 
-            self.tags.update(child_note.tags)
+        self.tags.update(child_note.tags)
 
         # Add child verse/note references to parent.
         self.referenced_verses.update(child_note.referenced_verses)
         self.referenced_notes.update(child_note.referenced_notes)
-        self.referenced_notes.add(child_note._id)

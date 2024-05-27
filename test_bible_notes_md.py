@@ -203,7 +203,6 @@ class TestBibleNotesMD(unittest.TestCase):
         updated_parent_tags.update(child_tags)
 
         updated_referenced_notes = child_referenced_notes.copy()
-        updated_referenced_notes.add(child_id)
 
         updated_referenced_verses = child_referenced_verses
 
