@@ -21,7 +21,6 @@ class BibleNoteMD(BibleNote):
     header_level: int = 0
 
     def __post_init__(self):
-        super().__post_init__()
 
         if self.note_text:
             self.note_text = self.note_text.strip()
@@ -75,7 +74,7 @@ class BibleNoteMD(BibleNote):
         # Contracted note text is parent text with all children note ids appended.
 
         for child_id in child_ids:
-
+            pass
 
         if not self._id:
             _id = re.search(_ID_REGEX, parent_text, flags=re.M)
@@ -219,7 +218,7 @@ class BibleNoteMD(BibleNote):
 
         return False
 
-    def _process_child_ids_in_parent_text(self, parent_text: str) -> None:
+    def _process_note_references_in_parent_text(self, parent_text: str) -> None:
         """Retrieve child ids from parent note.
         Inherit child notes.
 
@@ -228,11 +227,8 @@ class BibleNoteMD(BibleNote):
         """
 
         # Inherit from child note ids in parent.
-        child_ids_in_parent = re.findall(CHILD_ID_REGEX, parent_text, flags=re.M)
-        for child_id in child_ids_in_parent:
-            child_note = BibleNote.get(_id=child_id)
-            if child_note:
-                self._inherit_child_note(child_note=child_note)
+        for reference in re.findall(CHILD_ID_REGEX, parent_text, flags=re.M):
+            self.referenced_notes.add(reference)
 
     def _inherit_child_note(self, child_note: "BibleNoteMD") -> None:
         """Inherit attributes from the provided child note to this object.

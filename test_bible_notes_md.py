@@ -290,33 +290,8 @@ class TestBibleNotesMD(unittest.TestCase):
     def test_process_child_ids_in_parent(self, bible_note_md_get):
 
         child_id = "13902943"
-        child_kv_tags = {"tagged": True}
-        child_tags = {"tagged"}
-        child_bible_note = BibleNoteMD(
-            _id=child_id, note_text=h2, key_value_tags=child_kv_tags, tags=child_tags
-        )
 
         child_id_2 = "8503708asjk"
-        child_kv_tags_2 = {"not_tag": True}
-        child_tags_2 = {"tagged"}
-        child_bible_note_2 = BibleNoteMD(
-            _id=child_id_2,
-            note_text=h2_2,
-            key_value_tags=child_kv_tags_2,
-            tags=child_tags_2,
-        )
-
-        def mock_function(_id):
-            if _id == child_id:
-                return child_bible_note
-            elif _id == child_id_2:
-                return child_bible_note_2
-
-            self.fail(
-                f"Incorrect argument provided: {_id}. expected: {child_id} or {child_id_2}"
-            )
-
-        bible_note_md_get.side_effect = mock_function
 
         parent_text = (
             h1
@@ -335,15 +310,9 @@ class TestBibleNotesMD(unittest.TestCase):
             parent_note.note_text, parent_note.header_level
         )
 
-        parent_note._process_child_ids_in_parent_text(split_notes[0])
+        parent_note._process_note_references_in_parent_text(split_notes[0])
 
         self.assertEqual(parent_note.referenced_notes, {child_id, child_id_2})
-
-        self.assertEqual(
-            parent_note.key_value_tags, {**child_kv_tags, **child_kv_tags_2}
-        )
-
-        self.assertEqual(parent_note.tags, child_tags | child_tags_2)
 
     def test_process_tags(self):
 
@@ -532,3 +501,67 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+"""
+NOTE - How to mock database driver functions.
+
+    @patch("bible_notes_md.BibleNote.get")
+    def test_process_child_ids_in_parent(self, bible_note_md_get):
+
+        child_id = "13902943"
+        child_kv_tags = {"tagged": True}
+        child_tags = {"tagged"}
+        child_bible_note = BibleNoteMD(
+            _id=child_id, note_text=h2, key_value_tags=child_kv_tags, tags=child_tags
+        )
+
+        child_id_2 = "8503708asjk"
+        child_kv_tags_2 = {"not_tag": True}
+        child_tags_2 = {"tagged"}
+        child_bible_note_2 = BibleNoteMD(
+            _id=child_id_2,
+            note_text=h2_2,
+            key_value_tags=child_kv_tags_2,
+            tags=child_tags_2,
+        )
+
+        def mock_function(_id):
+            if _id == child_id:
+                return child_bible_note
+            elif _id == child_id_2:
+                return child_bible_note_2
+
+            self.fail(
+                f"Incorrect argument provided: {_id}. expected: {child_id} or {child_id_2}"
+            )
+
+        bible_note_md_get.side_effect = mock_function
+
+        parent_text = (
+            h1
+            + "\n"
+            + f"@__id{child_id}@"
+            + "\n"
+            + f"@__id{child_id_2}@"
+            + "\n@_id1903910193910@"
+        )
+
+        parent_note = BibleNoteMD(
+            _id="1903910193910", note_text=parent_text, header_level=1
+        )
+
+        split_notes = parent_note._split_notes(
+            parent_note.note_text, parent_note.header_level
+        )
+
+        parent_note._process_child_ids_in_parent_text(split_notes[0])
+
+        self.assertEqual(parent_note.referenced_notes, {child_id, child_id_2})
+
+        self.assertEqual(
+            parent_note.key_value_tags, {**child_kv_tags, **child_kv_tags_2}
+        )
+
+        self.assertEqual(parent_note.tags, child_tags | child_tags_2)
+
+"""
