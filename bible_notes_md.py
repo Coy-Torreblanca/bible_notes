@@ -1,8 +1,6 @@
 # https://bible-notes.atlassian.net/wiki/spaces/~63cdc33695cff7f585c2a3dd/pages/33861/BNMD
-# TODO - child first search
 
 import re
-import uuid
 from db.driver import MongoDriver
 from bible_notes import BibleNote
 from dataclasses import dataclass
@@ -76,6 +74,35 @@ class BibleNoteMD(BibleNote):
         self._extract_attr_from_parent_text(parent_text=parent_text)
 
         self.note_text = parent_text
+
+    @classmethod
+    def _subtract_header_levels(cls, number_to_subtract: int, text: str) -> str:
+        """Remove the requested number of header levels from all headers in text.
+        I.E. to remove a single level from: `## @ level_one` will result in `# @ level one`
+        WARN: Undefined results if number_to_subtract is greater than the smallest header in text.
+
+        Args:
+            number_to_subtract (int): Number of levels to remove from all headers in text.
+            text (str): Text from which to remove header levels from.
+
+        Returns:
+            str: Text with reduced headers.
+        """
+
+        # return re.sub(
+        # f"^#{number_to_subtract}#* @ .*$",
+        # lambda match: (
+        # None if not match else match.group(0).replace(match.group(1), "")
+        # ),
+        # text,
+        # flags=re.M,
+        # )
+        return re.sub(
+            f"^#{{{number_to_subtract}}}(#* @ .*$)",
+            "\g<1>",
+            text,
+            flags=re.M,
+        )
 
     @classmethod
     def _split_notes(cls, note_text: str, header_level_of_parent: int) -> list[str]:
