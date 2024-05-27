@@ -90,7 +90,7 @@ class BibleNoteMD(BibleNote):
         """
 
         return re.sub(
-            f"^#{{{number_to_subtract}}}(#* @ .*$)",
+            f"^#{{{number_to_subtract}}}(#*.*$)",
             "\g<1>",
             text,
             flags=re.M,
@@ -110,7 +110,7 @@ class BibleNoteMD(BibleNote):
         """
 
         return re.sub(
-            f"^#* @ .*$",
+            f"^#+.*$",
             f"{'#' * number_to_add}\g<0>",
             text,
             flags=re.M,
@@ -139,6 +139,10 @@ class BibleNoteMD(BibleNote):
             )
 
         return split_notes
+
+    def normalize_text_headers(self) -> None:
+        """Make first header of note text have one hashtag and the following"""
+        pass
 
     def _extract_attr_from_parent_text(self, parent_text: str) -> None:
         """Extract attributes from parent text, including child_ids in parent text..
