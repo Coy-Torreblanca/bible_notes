@@ -389,8 +389,6 @@ class TestBibleNotesMD(unittest.TestCase):
 
     def test_subtract_header_levels(self):
 
-        # test_text_1 = h1 + "\n" + h2 + "\n" + h2_2
-
         test_text_1 = h2
 
         result_text = BibleNoteMD._subtract_header_levels(
@@ -409,8 +407,23 @@ class TestBibleNotesMD(unittest.TestCase):
             number_to_subtract=1, text=test_note
         )
 
-        to_delete = test_note.replace("# @", " @")
         self.assertEqual(test_note.replace("# @", " @"), result_text)
+
+    def test_add_header_levels(self):
+
+        test_text_1 = h2
+
+        result_text = BibleNoteMD._add_header_levels(number_to_add=1, text=test_text_1)
+
+        self.assertEqual(test_text_1.replace("# @", "## @"), result_text)
+
+        result_text = BibleNoteMD._add_header_levels(number_to_add=2, text=test_text_1)
+
+        self.assertEqual(test_text_1.replace("## @", "#### @"), result_text)
+
+        result_text = BibleNoteMD._add_header_levels(number_to_add=1, text=test_note)
+
+        self.assertEqual(test_note.replace("# @", "## @"), result_text)
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):

@@ -89,17 +89,29 @@ class BibleNoteMD(BibleNote):
             str: Text with reduced headers.
         """
 
-        # return re.sub(
-        # f"^#{number_to_subtract}#* @ .*$",
-        # lambda match: (
-        # None if not match else match.group(0).replace(match.group(1), "")
-        # ),
-        # text,
-        # flags=re.M,
-        # )
         return re.sub(
             f"^#{{{number_to_subtract}}}(#* @ .*$)",
             "\g<1>",
+            text,
+            flags=re.M,
+        )
+
+    @classmethod
+    def _add_header_levels(cls, number_to_add: int, text: str) -> str:
+        """Add the requested number of header levels from all headers in text.
+        I.E. to add a single level to: `## @ level_one` will result in `### @ level one`
+
+        Args:
+            number_to_add (int): Number of levels to add to all headers in text.
+            text (str): Text from which to add header levels to.
+
+        Returns:
+            str: Text with added headers.
+        """
+
+        return re.sub(
+            f"^#* @ .*$",
+            f"{'#' * number_to_add}\g<0>",
             text,
             flags=re.M,
         )
