@@ -3,7 +3,7 @@
 
 import re
 import uuid
-from typing import Optional
+from db.driver import MongoDriver
 from bible_notes import BibleNote
 from dataclasses import dataclass
 
@@ -20,6 +20,9 @@ class BibleNoteMD(BibleNote):
 
     header_level: int = 0
 
+    MONGO_DATABASE = "notes_md"
+    MONGO_COLLECTION = "all_notes_md"
+
     def __post_init__(self):
 
         if self.note_text:
@@ -32,14 +35,29 @@ class BibleNoteMD(BibleNote):
     def extract(self) -> None:
         """Extract object attributes from note_text."""
 
+        # Get _id.
+        # TODO Test (move to own function?)
+        if not self._id:
+            _id = re.search(_ID_REGEX, parent_text, flags=re.M)
+
+            if not _id:
+                _id = BibleNoteMD._generate_new_id()
+
+            else:
+                _id = _id.group(1)
+                # Get parent ids from database if present.
+                # TODO Test.
+                existing_parent_ids = MongoDriver.get_client()[self.MONGO_DATABASE][
+                    self.MONGO_COLLECTION
+                ].find_one({"_id": self._id}, {"parent_ids": 1})
+
+                if existing_parent_ids:
+                    self.parent_ids.update(existing_parent_ids)
+
+            self._id = _id
+
         # Split parent from child notes.
         split_notes = self._split_notes(self.note_text, self.header_level)
-
-        # Extract child notes.
-        children_notes = []
-        child_ids = []
-
-        children_have_been_modified = False
 
         # Process child notes.
         for i in range(1, len(split_notes)):
@@ -47,64 +65,17 @@ class BibleNoteMD(BibleNote):
                 note_text=split_notes[i], header_level=self.header_level + 1
             )
 
-            children_notes.append(child_note)
+            child_note.extract()
 
-            child_has_been_modified = child_note.extract()
+            self.child_ids(child_note._id)
 
-            child_ids.append(child_note._id)
-
-            if child_has_been_modified or child_note._id not in self.referenced_notes:
-                # Child has been modified or never inherited.
-                # Mark flag to ensure we inherit child notes.
-                children_have_been_modified = True
-
-        if children_have_been_modified:
-            # Reset properties of parent and inherit children.
-            self.key_value_tags = {}
-            self.tags = set()
-            self.referenced_verses = set()
-            self.referenced_verses = set()
-
-            for child in children_notes:
-                self._inherit_child_note(child)
+            child_note.parent_ids.add(self._id)
 
         parent_text = split_notes[0]
 
-        # Contract note text for efficiency and to meet `set_self_from_db` requirements.
-        # Contracted note text is parent text with all children note ids appended.
+        self._extract_attr_from_parent_text(parent_text=parent_text)
 
-        for child_id in child_ids:
-            pass
-
-        if not self._id:
-            _id = re.search(_ID_REGEX, parent_text, flags=re.M)
-
-            if not _id:
-                _id = uuid.uuid4()
-
-            else:
-                _id = _id.group(1)
-
-                if not children_have_been_modified:
-                    has_been_modified = self.set_self_from_db(check_note_text=True)
-
-                else:
-                    has_been_modified = True
-
-            self._id = _id
-
-        if has_been_modified:
-            # TODO Update Mongo.
-            self._extract_attr_from_parent_text(parent_text=parent_text)
-
-        # If children have been modified or self has been modified, return True.
-        return has_been_modified
-
-        # if not _id:
-        # raise ValueError("Note text did not contain a valid _id field.")
-
-        # For each child, create a note and upload to mongo, extract _id of child note.
-        # Replace self.text with parent note + child note ids.
+        self.note_text = parent_text
 
     @classmethod
     def _split_notes(cls, note_text: str, header_level_of_parent: int) -> list[str]:

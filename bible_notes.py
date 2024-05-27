@@ -18,8 +18,8 @@ class BibleNote:
     """
 
     # Mongo Driver Attributes.
-    _MONGO_DATABASE = "notes"
-    _MONGO_COLLECTION = "all_notes"
+    MONGO_DATABASE = "notes"
+    MONGO_COLLECTION = "all_notes"
 
     # If not provided, presumed to be a new note and id will be generated.
     # The _id field in the Mongo database.
@@ -53,7 +53,7 @@ class BibleNote:
     child_ids: list[str] = field(default_factory=lambda: [])
 
     # List of notes which reference this note in the child_notes attributes.
-    parent_ids: list[str] = field(default_factory=lambda: set())
+    parent_ids: set[str] = field(default_factory=lambda: set())
 
     @classmethod
     def _generate_new_id(cls) -> str:
@@ -67,7 +67,9 @@ class BibleNote:
             Note or None: Return None if there is no data related to the note_id provided.
                           Otherwise, provide the given Note object associated with the note_id.
         """
-        data = MongoDriver.get_client()["notes"]["all_notes"].find_one({"_id": _id})
+        data = MongoDriver.get_client()[cls.MONGO_DATABASE][
+            cls.MONGO_COLLECTION
+        ].find_one({"_id": _id})
 
         if not data:
             return None
@@ -92,13 +94,13 @@ class BibleNote:
         """
 
         # Delete child references to this note.
-        MongoDriver.get_client()[cls._MONGO_DATABASE][
-            cls._MONGO_COLLECTION
-        ].update_many({}, {"$pull": {"parent_ids": _id}})
+        MongoDriver.get_client()[cls.MONGO_DATABASE][cls.MONGO_COLLECTION].update_many(
+            {}, {"$pull": {"parent_ids": _id}}
+        )
 
         # Delete Note.
-        result = MongoDriver.get_client()[cls._MONGO_DATABASE][
-            cls._MONGO_COLLECTION
+        result = MongoDriver.get_client()[cls.MONGO_DATABASE][
+            cls.MONGO_COLLECTION
         ].delete_one({"_id": _id})
 
         return result.deleted_count == 1
@@ -115,8 +117,8 @@ class BibleNote:
         """
 
         return (
-            MongoDriver.get_client()[cls._MONGO_DATABASE][
-                cls._MONGO_COLLECTION
+            MongoDriver.get_client()[cls.MONGO_DATABASE][
+                cls.MONGO_COLLECTION
             ].count_documents({"_id": note_id})
             == 1
         )
@@ -154,9 +156,7 @@ class BibleNote:
         self_dict["parent_ids"] = list(self_dict["parent_ids"])
         self_dict["tags"] = list(self_dict["tags"])
 
-        MongoDriver.get_client()[self._MONGO_DATABASE][
-            self._MONGO_COLLECTION
-        ].update_one(
+        MongoDriver.get_client()[self.MONGO_DATABASE][self.MONGO_COLLECTION].update_one(
             filter={"_id": self_dict["_id"]},
             update={"$set": self_dict},
             upsert=True,

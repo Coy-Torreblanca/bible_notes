@@ -14,14 +14,14 @@ class TestNotes(unittest.TestCase):
 
     def tearDown(self):
         for note_id in [self.note_id, self.note_id2]:
-            MongoDriver.get_client()[BibleNote._MONGO_DATABASE][
-                BibleNote._MONGO_COLLECTION
+            MongoDriver.get_client()[BibleNote.MONGO_DATABASE][
+                BibleNote.MONGO_COLLECTION
             ].delete_many({"_id": note_id})
 
             note_id = None
 
-            result = MongoDriver.get_client()[BibleNote._MONGO_DATABASE][
-                BibleNote._MONGO_COLLECTION
+            result = MongoDriver.get_client()[BibleNote.MONGO_DATABASE][
+                BibleNote.MONGO_COLLECTION
             ].find_one({"_id": note_id})
 
         assert result is None
