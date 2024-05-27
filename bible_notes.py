@@ -59,10 +59,6 @@ class BibleNote:
     def _generate_new_id(cls) -> str:
         return str(uuid4())
 
-    def update_note_text(self):
-        """Update note text and dependent attributes."""
-        pass
-
     @classmethod
     def get(cls, _id: str) -> Optional["BibleNote"]:
         """From the database, get the object represented by the given note_id.
@@ -153,7 +149,6 @@ class BibleNote:
         self_dict = self.to_db_dict()
 
         # Convert sets to lists as Mongo does not accept lists.
-        # TODO - Does Mongo not have a set data type?
         self_dict["referenced_verses"] = list(self_dict["referenced_verses"])
         self_dict["referenced_notes"] = list(self_dict["referenced_notes"])
         self_dict["parent_ids"] = list(self_dict["parent_ids"])
