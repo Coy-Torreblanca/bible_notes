@@ -438,8 +438,7 @@ class TestBibleNotesMD(unittest.TestCase):
             input, output = tu
 
         new_note = BibleNoteMD(note_text=input)
-        new_note.normalize_text_headers()
-        self.assertEqual(new_note.note_text, output)
+        self.assertEqual(new_note._normalize_text_headers(), output)
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):

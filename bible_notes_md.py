@@ -140,7 +140,22 @@ class BibleNoteMD(BibleNote):
 
         return split_notes
 
-    def normalize_text_headers(self) -> None:
+    def _expand_note(self) -> None:
+        """Add unormalized child notes to parent note text."""
+
+        child_texts = []
+
+        deleted_child_texts_indexes = set()
+
+        for i in len(range(self.child_ids)):
+            child_id = self.child_ids[i]
+            child_note = BibleNoteMD.get(child_id)
+
+            if not child_note:
+                deleted_child_texts_indexes.add(i)
+                continue
+
+    def _normalize_text_headers(self) -> None:
         """Make first header of note text and shift all other headings by the same amount."""
 
         first_header = re.search("^(#+).*$", self.note_text, re.M)
@@ -150,7 +165,7 @@ class BibleNoteMD(BibleNote):
 
         header_length = len(first_header.group(1))
 
-        self.note_text = self._subtract_header_levels(header_length - 1, self.note_text)
+        return self._subtract_header_levels(header_length - 1, self.note_text)
 
     def _extract_attr_from_parent_text(self, parent_text: str) -> None:
         """Extract attributes from parent text, including child_ids in parent text..
