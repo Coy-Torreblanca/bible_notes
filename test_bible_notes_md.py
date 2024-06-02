@@ -268,14 +268,14 @@ class TestBibleNotesMD(unittest.TestCase):
 
         # Create mock function which will only except target id and return mongo note.
 
-        def mock_function_side_affect(_id):
+        def mock_get(_id):
             if _id == note_id:
                 return note_in_mongo
 
             else:
                 self.fail(f"Provided argument was not expected id: {_id}")
 
-        mock_get_bible_note.side_effect = mock_function_side_affect
+        mock_get_bible_note.side_effect = mock_get
 
         note_in_mongo_dict = note_in_mongo.to_db_dict()
 
@@ -427,18 +427,54 @@ class TestBibleNotesMD(unittest.TestCase):
 
     def test_normalize_text_headers(self):
         input_output = [
-            (h0, h0.strip()),
-            (h1, h1.strip()),
-            (h2, h2.strip().replace("##", "#")),
-            (test_note, test_note.strip()),
-            (h2 + h2_2, (h2 + h2_2).strip().replace("##", "#")),
-            (h2 + h3, (h2 + h3).strip().replace("##", "#")),
+            (h0, h0),
+            (h1, h1),
+            (h2, h2.replace("##", "#")),
+            (test_note, test_note),
+            (h2 + h2_2, (h2 + h2_2).replace("##", "#")),
+            (h2 + h3, (h2 + h3).replace("##", "#")),
         ]
         for tu in input_output:
             input, output = tu
 
-        new_note = BibleNoteMD(note_text=input)
-        self.assertEqual(new_note._normalize_text_headers(), output)
+        self.assertEqual(BibleNoteMD._normalize_text_headers(input), output)
+
+    @patch("bible_notes_md.BibleNoteMD.get")
+    def _test_expand_note(self, mock_get_bible_note):
+        print("HERE")
+        h0_id = BibleNoteMD._generate_new_id()
+        h1_id = BibleNoteMD._generate_new_id()
+        h2_id = BibleNoteMD._generate_new_id()
+        h3_id = BibleNoteMD._generate_new_id()
+        h2_2_id = BibleNoteMD._generate_new_id()
+
+        note_texts = {
+            h0_id: BibleNoteMD._normalize_test_headers(h0),
+            h1_id: BibleNoteMD._normalize_test_headers(h1),
+            h2_id: BibleNoteMD._normalize_test_headers(h2),
+            h3_id: BibleNoteMD._normalize_test_headers(h3),
+            h2_2_id: BibleNoteMD._normalize_test_headers(h2_2),
+        }
+
+        def mock_get(_id):
+            note_text = note_texts.get(_id)
+
+            if not note_text:
+                self.fail(f"A non_supported id was used: {_id}")
+
+            return note_text
+
+        mock_get_bible_note.side_effect = mock_get
+
+        test_note = BibleNoteMD()
+        test_note.note_text = h0
+        test_note.child_ids = [h1_id, h2_id, h3_id, h2_2_id]
+
+        expanded_note = test_note._expand_note()
+
+        self.assertEqual(expanded_note, "\n".join(h0, h1, h2, h3, h2_2))
+
+    # TODO Test child_note_id deletion
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):

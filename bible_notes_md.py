@@ -4,6 +4,7 @@ import re
 from db.driver import MongoDriver
 from bible_notes import BibleNote
 from dataclasses import dataclass
+from typing import Optional
 
 CHILD_ID_REGEX = "^@__id([a-z0-9]+)@$"
 _ID_REGEX = "^@_id([a-z0-9]+)@$"
@@ -76,6 +77,36 @@ class BibleNoteMD(BibleNote):
         self.note_text = parent_text
 
     @classmethod
+    def get(cls, _id: str) -> Optional["BibleNoteMD"]:
+        """From the database, get the object represented by the given note_id.
+
+        Returns:
+            Note or None: Return None if there is no data related to the note_id provided.
+                          Otherwise, provide the given Note object associated with the note_id.
+        """
+        return super().get(_id)
+
+    @classmethod
+    def _normalize_text_headers(cls, note_text: str) -> str:
+        """_Make first header of note text and shift all other headings by the same amount
+
+        Args:
+            note_text (str): Note text to normalize
+
+        Returns:
+            str: normalized note text
+        """
+
+        first_header = re.search("^(#+).*$", note_text, re.M)
+
+        if not first_header:
+            return
+
+        header_length = len(first_header.group(1))
+
+        return cls._subtract_header_levels(header_length - 1, note_text)
+
+    @classmethod
     def _subtract_header_levels(cls, number_to_subtract: int, text: str) -> str:
         """Remove the requested number of header levels from all headers in text.
         I.E. to remove a single level from: `## @ level_one` will result in `# @ level one`
@@ -145,27 +176,33 @@ class BibleNoteMD(BibleNote):
 
         child_texts = []
 
-        deleted_child_texts_indexes = set()
+        new_child_ids = []
 
-        for i in len(range(self.child_ids)):
-            child_id = self.child_ids[i]
+        for child_id in self.child_ids:
             child_note = BibleNoteMD.get(child_id)
 
-            if not child_note:
-                deleted_child_texts_indexes.add(i)
+            if child_note:
+                new_child_ids.append(child_id)
+
+            else:
                 continue
 
-    def _normalize_text_headers(self) -> None:
-        """Make first header of note text and shift all other headings by the same amount."""
+            if self.header_level:
+                child_texts.append(
+                    child_note._add_header_levels(
+                        self.header_level, child_note.note_text
+                    )
+                )
 
-        first_header = re.search("^(#+).*$", self.note_text, re.M)
+            else:
+                child_texts.append(child_note.note_text)
 
-        if not first_header:
-            return
+        # Remove deleted child notes.
+        self.child_ids = new_child_ids
 
-        header_length = len(first_header.group(1))
-
-        return self._subtract_header_levels(header_length - 1, self.note_text)
+        return "{parent_text}\n{child_notes}".format(
+            parent_text=self.note_text, child_notes="\n".join(child_texts)
+        )
 
     def _extract_attr_from_parent_text(self, parent_text: str) -> None:
         """Extract attributes from parent text, including child_ids in parent text..
