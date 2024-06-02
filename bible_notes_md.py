@@ -141,8 +141,16 @@ class BibleNoteMD(BibleNote):
         return split_notes
 
     def normalize_text_headers(self) -> None:
-        """Make first header of note text have one hashtag and the following"""
-        pass
+        """Make first header of note text and shift all other headings by the same amount."""
+
+        first_header = re.search("^(#+).*$", self.note_text, re.M)
+
+        if not first_header:
+            return
+
+        header_length = len(first_header.group(1))
+
+        self.note_text = self._subtract_header_levels(header_length - 1, self.note_text)
 
     def _extract_attr_from_parent_text(self, parent_text: str) -> None:
         """Extract attributes from parent text, including child_ids in parent text..

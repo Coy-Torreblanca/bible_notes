@@ -425,6 +425,22 @@ class TestBibleNotesMD(unittest.TestCase):
 
         self.assertEqual(test_note.replace("# @", "## @"), result_text)
 
+    def test_normalize_text_headers(self):
+        input_output = [
+            (h0, h0.strip()),
+            (h1, h1.strip()),
+            (h2, h2.strip().replace("##", "#")),
+            (test_note, test_note.strip()),
+            (h2 + h2_2, (h2 + h2_2).strip().replace("##", "#")),
+            (h2 + h3, (h2 + h3).strip().replace("##", "#")),
+        ]
+        for tu in input_output:
+            input, output = tu
+
+        new_note = BibleNoteMD(note_text=input)
+        new_note.normalize_text_headers()
+        self.assertEqual(new_note.note_text, output)
+
 
 class TestBibleNoteMDRegexes(unittest.TestCase):
     def test_CHILD_ID_REGEX(self):
