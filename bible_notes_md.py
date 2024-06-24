@@ -27,6 +27,8 @@ class BibleNoteMD(BibleNote):
         if self.note_text:
             self.note_text = self.note_text.strip()
 
+            self.note_text = self._normalize_text_headers(self.note_text)
+
             # If note starts with a header, then set starting header_level to 1.
             if self.note_text.startswith("# @ "):
                 self.header_level = 1
@@ -100,7 +102,7 @@ class BibleNoteMD(BibleNote):
         first_header = re.search("^(#+).*$", note_text, re.M)
 
         if not first_header:
-            return
+            return note_text
 
         header_length = len(first_header.group(1))
 

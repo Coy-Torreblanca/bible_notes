@@ -440,39 +440,84 @@ class TestBibleNotesMD(unittest.TestCase):
         self.assertEqual(BibleNoteMD._normalize_text_headers(input), output)
 
     @patch("bible_notes_md.BibleNoteMD.get")
-    def _test_expand_note(self, mock_get_bible_note):
-        print("HERE")
+    def test_expand_note(self, mock_get_bible_note):
         h0_id = BibleNoteMD._generate_new_id()
         h1_id = BibleNoteMD._generate_new_id()
         h2_id = BibleNoteMD._generate_new_id()
         h3_id = BibleNoteMD._generate_new_id()
         h2_2_id = BibleNoteMD._generate_new_id()
 
-        note_texts = {
-            h0_id: BibleNoteMD._normalize_test_headers(h0),
-            h1_id: BibleNoteMD._normalize_test_headers(h1),
-            h2_id: BibleNoteMD._normalize_test_headers(h2),
-            h3_id: BibleNoteMD._normalize_test_headers(h3),
-            h2_2_id: BibleNoteMD._normalize_test_headers(h2_2),
+        notes = {
+            h0_id: BibleNoteMD(
+                note_text=BibleNoteMD._normalize_text_headers(h0),
+                child_ids=[h1_id],
+            ),
+            h1_id: BibleNoteMD(
+                note_text=BibleNoteMD._normalize_text_headers(h1),
+                child_ids=[h2_id, h2_2_id],
+            ),
+            h2_id: BibleNoteMD(
+                note_text=BibleNoteMD._normalize_text_headers(h2),
+                child_ids=[h3_id],
+            ),
+            h3_id: BibleNoteMD(
+                note_text=BibleNoteMD._normalize_text_headers(h3), header_level=3
+            ),
+            h2_2_id: BibleNoteMD(
+                note_text=BibleNoteMD._normalize_text_headers(h2_2), header_level=2
+            ),
         }
 
         def mock_get(_id):
-            note_text = note_texts.get(_id)
+            new_note = notes.get(_id)
 
-            if not note_text:
+            if not new_note:
                 self.fail(f"A non_supported id was used: {_id}")
 
-            return note_text
+            return new_note
 
         mock_get_bible_note.side_effect = mock_get
 
-        test_note = BibleNoteMD()
-        test_note.note_text = h0
-        test_note.child_ids = [h1_id, h2_id, h3_id, h2_2_id]
+        for note_id in notes:
+            note = notes[note_id]
 
-        expanded_note = test_note._expand_note()
+            # Get expanded note.
+            expanded_note = note._expand_note().strip()
 
-        self.assertEqual(expanded_note, "\n".join(h0, h1, h2, h3, h2_2))
+            # Compose the expanded note manually.
+            all_notes = [BibleNoteMD._normalize_text_headers(note.note_text)]
+
+            for child_id in note.child_ids:
+                child_note = BibleNoteMD.get(child_id)
+
+                # first_header = re.search("^(#+).*$", child_note.note_text, re.M)
+                # header_length = len(first_header.group(1))
+
+                all_notes.append(
+                    BibleNoteMD._add_header_levels(
+                        note.header_level, child_note.note_text
+                    )
+                )
+
+            expected_output = "\n".join(all_notes)
+
+            with open("/Users/coytorreblanca/Downloads/expanded_note.txt", "w") as f:
+                f.write(expanded_note)
+            with open("/Users/coytorreblanca/Downloads/expected_output.txt", "w") as f:
+                f.write(expected_output)
+
+            self.assertEqual(expanded_note, expected_output)
+
+        ##
+
+        # expanded_note = notes[h2_id]._expand_note().strip()
+
+        # expected_output = "".join(
+        # [
+        # BibleNoteMD._normalize_text_headers(h2),
+        # BibleNoteMD._subtract_header_levels(1, h3),
+        # ]
+        # ).strip()
 
     # TODO Test child_note_id deletion
 
