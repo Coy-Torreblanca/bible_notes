@@ -174,7 +174,7 @@ class TestBibleNotesMD(unittest.TestCase):
         child_id = "_id1234545"
         child_kv_tags = {"tagged": True, "new_tag": "is_here"}
         child_tags = {"one", "two"}
-        child_referenced_notes = {"_id9108103"}
+        child_referenced_notes = ["_id9108103"]
         child_referenced_verses = {"/John/1/1", "/John/1/2"}
 
         bible_note_child = BibleNoteMD(
@@ -241,7 +241,7 @@ class TestBibleNotesMD(unittest.TestCase):
         note_in_mongo = BibleNoteMD(
             _id=note_id,
             note_text=note_text,
-            referenced_notes={"1901830113", "910930909"},
+            referenced_notes=["1901830113", "910930909"],
             referenced_verses={"/John1/1/1", "/Genesis/1/1"},
             tags={"tagged"},
             key_value_tags={"tagged": True},
@@ -260,7 +260,7 @@ class TestBibleNotesMD(unittest.TestCase):
         note_in_mongo = BibleNoteMD(
             _id=note_id,
             note_text=note_text,
-            referenced_notes={"1901830113", "910930909"},
+            referenced_notes=["1901830113", "910930909"],
             referenced_verses={"/John1/1/1", "/Genesis/1/1"},
             tags={"tagged"},
             key_value_tags={"tagged": True},
@@ -311,7 +311,7 @@ class TestBibleNotesMD(unittest.TestCase):
 
         parent_note._process_note_references_in_parent_text(split_notes[0])
 
-        self.assertEqual(parent_note.referenced_notes, {child_id, child_id_2})
+        self.assertEqual(parent_note.referenced_notes, [child_id, child_id_2])
 
     def test_process_tags(self):
 
@@ -359,7 +359,7 @@ class TestBibleNotesMD(unittest.TestCase):
 
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4", "tag_key2"})
 
-        self.assertEqual(bible_note.referenced_notes, {child_id, child_id_2})
+        self.assertEqual(bible_note.referenced_notes, [child_id, child_id_2])
 
         # H1 test
         bible_note = BibleNoteMD(_id="1", header_level=1)
@@ -385,7 +385,7 @@ class TestBibleNotesMD(unittest.TestCase):
 
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4"})
 
-        self.assertEqual(bible_note.referenced_notes, {child_id, child_id_2})
+        self.assertEqual(bible_note.referenced_notes, [child_id, child_id_2])
 
     def test_subtract_header_levels(self):
 
@@ -450,15 +450,15 @@ class TestBibleNotesMD(unittest.TestCase):
         notes = {
             h0_id: BibleNoteMD(
                 note_text=BibleNoteMD._normalize_text_headers(h0),
-                child_ids=[h1_id],
+                referenced_notes=[h1_id],
             ),
             h1_id: BibleNoteMD(
                 note_text=BibleNoteMD._normalize_text_headers(h1),
-                child_ids=[h2_id, h2_2_id],
+                referenced_notes=[h2_id, h2_2_id],
             ),
             h2_id: BibleNoteMD(
                 note_text=BibleNoteMD._normalize_text_headers(h2),
-                child_ids=[h3_id],
+                referenced_notes=[h3_id],
             ),
             h3_id: BibleNoteMD(
                 note_text=BibleNoteMD._normalize_text_headers(h3), header_level=3
@@ -487,7 +487,7 @@ class TestBibleNotesMD(unittest.TestCase):
             # Compose the expanded note manually.
             all_notes = [BibleNoteMD._normalize_text_headers(note.note_text)]
 
-            for child_id in note.child_ids:
+            for child_id in note.referenced_notes:
                 child_note = BibleNoteMD.get(child_id)
 
                 # first_header = re.search("^(#+).*$", child_note.note_text, re.M)

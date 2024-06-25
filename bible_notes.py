@@ -46,7 +46,7 @@ class BibleNote:
     # Set of notes referenced in this note.
     # NOTE - referenced notes are not expanded in parent notes.
     # Values should be note_ids.
-    referenced_notes: set[str] = field(default_factory=lambda: set())
+    referenced_notes: list[str] = field(default_factory=lambda: list())
 
     # List of notes which, when appended to this note's text, make up the original note.
     # Values shoudl be note_ids.
@@ -75,7 +75,6 @@ class BibleNote:
             return None
 
         data["referenced_verses"] = set(data["referenced_verses"])
-        data["referenced_notes"] = set(data["referenced_notes"])
         data["parent_ids"] = set(data["parent_ids"])
         data["tags"] = set(data["tags"])
 
@@ -152,7 +151,6 @@ class BibleNote:
 
         # Convert sets to lists as Mongo does not accept lists.
         self_dict["referenced_verses"] = list(self_dict["referenced_verses"])
-        self_dict["referenced_notes"] = list(self_dict["referenced_notes"])
         self_dict["parent_ids"] = list(self_dict["parent_ids"])
         self_dict["tags"] = list(self_dict["tags"])
 

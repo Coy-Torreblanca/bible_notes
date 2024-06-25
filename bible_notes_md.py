@@ -173,18 +173,23 @@ class BibleNoteMD(BibleNote):
 
         return split_notes
 
+    def _contract_note(self) -> None:
+        """Extract child note ids from note text and remove child notes from note text."""
+
+        self.child_ids = []
+
     def _expand_note(self) -> None:
         """Add unormalized child notes to parent note text."""
 
         child_texts = []
 
-        new_child_ids = []
+        new_referenced_notes = []
 
-        for child_id in self.child_ids:
+        for child_id in self.referenced_notes:
             child_note = BibleNoteMD.get(child_id)
 
             if child_note:
-                new_child_ids.append(child_id)
+                new_referenced_notes.append(child_id)
 
             else:
                 continue
@@ -200,7 +205,7 @@ class BibleNoteMD(BibleNote):
                 child_texts.append(child_note.note_text)
 
         # Remove deleted child notes.
-        self.child_ids = new_child_ids
+        self.referenced_notes = new_referenced_notes
 
         return "{parent_text}\n{child_notes}".format(
             parent_text=self.note_text, child_notes="\n".join(child_texts)
@@ -307,7 +312,7 @@ class BibleNoteMD(BibleNote):
 
         # Inherit from child note ids in parent.
         for reference in re.findall(CHILD_ID_REGEX, parent_text, flags=re.M):
-            self.referenced_notes.add(reference)
+            self.referenced_notes.append(reference)
 
     def _inherit_child_note(self, child_note: "BibleNoteMD") -> None:
         """Inherit attributes from the provided child note to this object.
@@ -326,4 +331,5 @@ class BibleNoteMD(BibleNote):
 
         # Add child verse/note references to parent.
         self.referenced_verses.update(child_note.referenced_verses)
-        self.referenced_notes.update(child_note.referenced_notes)
+        for child_id in child_note.referenced_notes:
+            self.referenced_notes.append(child_id)
