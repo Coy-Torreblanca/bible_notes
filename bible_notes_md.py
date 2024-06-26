@@ -173,10 +173,22 @@ class BibleNoteMD(BibleNote):
 
         return split_notes
 
-    def _contract_note(self) -> None:
+    def _contract_note(self) -> list["BibleNoteMD"]:
         """Extract child note ids from note text and remove child notes from note text."""
 
         self.child_ids = []
+        split_notes = self._split_notes(self.note_text, self.header_level)
+
+        self.note_text = split_notes[0]
+
+        child_notes = []
+        for i in range(1, len(split_notes)):
+            note = split_notes[i]
+            note = BibleNoteMD(note_text=self._normalize_text_headers(note))
+            child_notes.append(note)
+            self.child_ids.append(note._id)
+
+        return child_notes
 
     def _expand_note(self) -> None:
         """Add unormalized child notes to parent note text."""

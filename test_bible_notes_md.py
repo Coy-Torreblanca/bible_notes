@@ -508,6 +508,35 @@ class TestBibleNotesMD(unittest.TestCase):
 
             self.assertEqual(expanded_note, expected_output)
 
+    def test_contract(self) -> None:
+
+        note = BibleNoteMD(note_text=test_note)
+
+        child_notes = note._contract_note()
+
+        self.assertEqual(note.note_text, h0.strip())
+
+        self.assertEqual(len(child_notes), 2)
+        self.assertEqual(child_notes[0].note_text, f"{h1}\n{h2}".strip())
+        self.assertEqual(child_notes[1].note_text, f"{h1}\n{h2_2}\n{h3}\n{h2}".strip())
+
+        # test_note = f"{h0}\n{h1}\n{h2}\n{h1}\n{h2_2}\n{h3}\n{h2}"
+
+        note = BibleNoteMD(note_text=f"{h1}\n{h2_2}\n{h3}\n{h2}")
+
+        child_notes = note._contract_note()
+
+        self.assertEqual(note.note_text, h1.strip())
+
+        self.assertEqual(
+            child_notes[0].note_text,
+            BibleNoteMD._normalize_text_headers(f"{h2_2}\n{h3}").strip(),
+        )
+        self.assertEqual(
+            child_notes[1].note_text.strip(),
+            BibleNoteMD._normalize_text_headers(f"{h2}").strip(),
+        )
+
         ##
 
         # expanded_note = notes[h2_id]._expand_note().strip()
