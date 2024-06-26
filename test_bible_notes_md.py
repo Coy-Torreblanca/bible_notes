@@ -315,14 +315,14 @@ class TestBibleNotesMD(unittest.TestCase):
 
     def test_process_tags(self):
 
-        bible_note = BibleNoteMD(_id="1234")
+        bible_note = BibleNoteMD(_id="1234", note_text="note")
 
         bible_note._process_tag_text(h0)
 
         self.assertEqual(bible_note.key_value_tags, {"tag_key 1": "tag_value 1"})
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4", "tag_key2"})
 
-        bible_note = BibleNoteMD(_id="1234")
+        bible_note = BibleNoteMD(_id="1234", note_text="test")
 
         bible_note._process_tag_text(h1)
 
@@ -335,7 +335,7 @@ class TestBibleNotesMD(unittest.TestCase):
 
     def test_extract_attr_from_parent_text(self) -> None:
 
-        bible_note = BibleNoteMD(_id="1")
+        bible_note = BibleNoteMD(_id="1", note_text="note")
 
         child_id = "13902943"
 
@@ -362,7 +362,7 @@ class TestBibleNotesMD(unittest.TestCase):
         self.assertEqual(bible_note.referenced_notes, [child_id, child_id_2])
 
         # H1 test
-        bible_note = BibleNoteMD(_id="1", header_level=1)
+        bible_note = BibleNoteMD(_id="1", header_level=1, note_text="note")
 
         parent_text = h1 + "\n" + f"@__id{child_id}@" + "\n" + f"@__id{child_id_2}@"
 

@@ -24,14 +24,14 @@ class BibleNoteMD(BibleNote):
 
     def __post_init__(self):
 
-        if self.note_text:
-            self.note_text = self.note_text.strip()
+        assert self.note_text
+        self.note_text = self.note_text.strip()
 
-            self.note_text = self._normalize_text_headers(self.note_text)
+        self.note_text = self._normalize_text_headers(self.note_text)
 
-            # If note starts with a header, then set starting header_level to 1.
-            if self.note_text.startswith("# @ "):
-                self.header_level = 1
+        # If note starts with a header, then set starting header_level to 1.
+        if self.note_text.startswith("# @ "):
+            self.header_level = 1
 
     def extract(self) -> None:
         """Extract object attributes from note_text."""
