@@ -152,7 +152,7 @@ class TestNotes(unittest.TestCase):
             theme="askdfl",
             note_text="asdf",
             tags={"asdf"},
-            referenced_notes={self.note_id},
+            referenced_notes=[self.note_id],
         )
 
         referencing_note.upsert()
@@ -164,7 +164,7 @@ class TestNotes(unittest.TestCase):
         referencing_note = BibleNote.get(self.note_id2)
 
         # Ensure deleted note no longer is still referenced.
-        self.assertEqual(referencing_note.referenced_notes, {self.note_id})
+        self.assertEqual(referencing_note.referenced_notes, [self.note_id])
 
     def test_deletion_of_parents(self):
         """Ensure when a note is deleted, children no longer reference it in parent_ids."""
