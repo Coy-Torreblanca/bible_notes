@@ -322,7 +322,7 @@ class TestBibleNotesMD(unittest.TestCase):
         self.assertEqual(bible_note.key_value_tags, {"tag_key 1": "tag_value 1"})
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4", "tag_key2"})
 
-        bible_note = BibleNoteMD(_id="1234", note_text="test")
+        bible_note = BibleNoteMD(_id="1234")
 
         bible_note._process_tag_text(h1)
 
