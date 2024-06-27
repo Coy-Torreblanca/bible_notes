@@ -322,7 +322,7 @@ class TestBibleNotesMD(unittest.TestCase):
         self.assertEqual(bible_note.key_value_tags, {"tag_key 1": "tag_value 1"})
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4", "tag_key2"})
 
-        bible_note = BibleNoteMD(_id="1234")
+        bible_note = BibleNoteMD(_id="1234", note_text="test")
 
         bible_note._process_tag_text(h1)
 
@@ -386,6 +386,31 @@ class TestBibleNotesMD(unittest.TestCase):
         self.assertEqual(bible_note.tags, {"tag 2", "tag 3", "tag 4"})
 
         self.assertEqual(bible_note.referenced_notes, [child_id, child_id_2])
+
+    def test_extract_id(self):
+        # Test generation.
+        ## Test heading 0.
+        test_note = BibleNoteMD(note_text="test_note\nabc")
+        test_note._extract_id(test_note.note_text)
+
+        self.assertEqual(
+            test_note.note_text, f"@_id{test_note._id}@" + "\ntest_note\nabc"
+        )
+
+        ## Test heading 1.
+        test_note = BibleNoteMD(note_text="# @ test_note\nabc")
+        test_note.title = "# @ test_note"
+        test_note._extract_id(test_note.note_text)
+
+        self.assertEqual(
+            test_note.note_text, "# @ test_note\n" + f"@_id{test_note._id}@" + "\nabc"
+        )
+
+        # Test id extract.
+        _id = test_note._id
+        test_note._id = None
+        test_note._extract_id(test_note.note_text)
+        self.assertEqual(self._id, _id)
 
     def test_subtract_header_levels(self):
 
