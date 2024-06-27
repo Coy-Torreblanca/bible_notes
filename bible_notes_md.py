@@ -38,24 +38,17 @@ class BibleNoteMD(BibleNote):
 
         # Get _id.
         # TODO Test (move to own function?)
-        if not self._id:
-            _id = re.search(_ID_REGEX, parent_text, flags=re.M)
+        child_notes = self._contract_note()
 
-            if not _id:
-                _id = BibleNoteMD._generate_new_id()
+        # Get parent ids from database if present.
+        assert self._id
+        # TODO Test.
+        existing_parent_ids = MongoDriver.get_client()[self.MONGO_DATABASE][
+            self.MONGO_COLLECTION
+        ].find_one({"_id": self._id}, {"parent_ids": 1})
 
-            else:
-                _id = _id.group(1)
-                # Get parent ids from database if present.
-                # TODO Test.
-                existing_parent_ids = MongoDriver.get_client()[self.MONGO_DATABASE][
-                    self.MONGO_COLLECTION
-                ].find_one({"_id": self._id}, {"parent_ids": 1})
-
-                if existing_parent_ids:
-                    self.parent_ids.update(existing_parent_ids)
-
-            self._id = _id
+        if existing_parent_ids:
+            self.parent_ids.update(existing_parent_ids)
 
         # Split parent from child notes.
         split_notes = self._split_notes(self.note_text, self.header_level)
@@ -174,7 +167,12 @@ class BibleNoteMD(BibleNote):
         return split_notes
 
     def _contract_note(self) -> list["BibleNoteMD"]:
-        """Extract child note ids from note text and remove child notes from note text."""
+        """Extract child note ids from note text and remove child notes from note text.
+        Return immediate child objects.
+
+        Returns:
+            list[BibleNoteMD]: Returns child notes (immediate children).
+        """
 
         self.child_ids = []
         split_notes = self._split_notes(self.note_text, self.header_level)
@@ -245,7 +243,7 @@ class BibleNoteMD(BibleNote):
         self.theme = match if not match else match.group(1).strip()
 
         # Extract Title.
-        if not self.title and self.header_level > 0:
+        if self.header_level > 0:
             # If title is not the filename, extract it from next header.
             match = re.search(
                 TITLE_REGEX.format(additional_level_hashtags="#" * self.header_level),
@@ -253,11 +251,15 @@ class BibleNoteMD(BibleNote):
                 re.M,
             )
 
-            if match:
-                self.title = match.group(1)
+            assert match
+
+            self.title = match.group(1)
+
+        # Extract id.
+        self._extract_id(parent_text)
 
     def _process_tag_text(self, parent_text: str) -> None:
-        """Test tag text into kv and regular tags.
+        """Extract tag text into kv and regular tags.
 
         Args:
             parent_text (str): Text of note without child note text.
@@ -289,6 +291,31 @@ class BibleNoteMD(BibleNote):
             else:
                 # This is a kv tag with a null key.
                 self.tags.add(split_tag[0])
+
+    def _extract_id(self, parent_text: str) -> None:
+        """Extract (or generate) parent id from text.
+
+        Args:
+            parent_text (str): Text of note without child note text.
+            _id is in format @_id.*@.
+        """
+        # Extract id.
+        _id = re.search(_ID_REGEX, parent_text, flags=re.M)
+
+        if _id:
+            self._id = _id
+            return
+
+        self._id = BibleNoteMD._generate_new_id()
+
+        # Add id to note.
+        if self.header_level == 0:
+            self.note_text = f"@_id{self._id}@" + "\n" + self.note_text
+            return
+
+        self.note_text = self.note_text.replace(
+            self.title, self.title + "\n" + f"@_id{self._id}@" + "\n"
+        )
 
     def set_self_from_db(self, check_note_text: bool = False) -> bool:
         """Set attributes from mongodb if text matches note in mongodb.
