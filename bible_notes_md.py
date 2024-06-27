@@ -6,8 +6,8 @@ from bible_notes import BibleNote
 from dataclasses import dataclass
 from typing import Optional
 
-CHILD_ID_REGEX = "^@__id([a-z0-9]+)@$"
-_ID_REGEX = "^@_id([a-z0-9]+)@$"
+CHILD_ID_REGEX = "^@__id(.+)@$"
+_ID_REGEX = "^@_id(.+)@$"
 TAGS_REGEX = "^@tags\n^([\s\S]+)\n^@$"
 VERSE_REGEX = "@(\/.*)@"
 THEME_REGEX = "^@theme$\n^([\s\S]+?)^@$"
@@ -294,16 +294,20 @@ class BibleNoteMD(BibleNote):
 
     def _extract_id(self, parent_text: str) -> None:
         """Extract (or generate) parent id from text.
+        self.title is required to generate a heading 1+ id.
 
         Args:
             parent_text (str): Text of note without child note text.
             _id is in format @_id.*@.
         """
-        # Extract id.
-        _id = re.search(_ID_REGEX, parent_text, flags=re.M)
+        if self._id:
+            return
 
-        if _id:
-            self._id = _id
+        # Extract id.
+        match = re.search(_ID_REGEX, parent_text, flags=re.M)
+
+        if match:
+            self._id = match.group(1)
             return
 
         self._id = BibleNoteMD._generate_new_id()
@@ -312,6 +316,8 @@ class BibleNoteMD(BibleNote):
         if self.header_level == 0:
             self.note_text = f"@_id{self._id}@" + "\n" + self.note_text
             return
+
+        assert self.title
 
         self.note_text = self.note_text.replace(
             self.title, self.title + "\n" + f"@_id{self._id}@" + "\n"

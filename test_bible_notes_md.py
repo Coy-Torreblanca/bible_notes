@@ -403,14 +403,14 @@ class TestBibleNotesMD(unittest.TestCase):
         test_note._extract_id(test_note.note_text)
 
         self.assertEqual(
-            test_note.note_text, "# @ test_note\n" + f"@_id{test_note._id}@" + "\nabc"
+            test_note.note_text, "# @ test_note\n" + f"@_id{test_note._id}@" + "\n\nabc"
         )
 
         # Test id extract.
         _id = test_note._id
         test_note._id = None
         test_note._extract_id(test_note.note_text)
-        self.assertEqual(self._id, _id)
+        self.assertEqual(test_note._id, _id)
 
     def test_subtract_header_levels(self):
 
