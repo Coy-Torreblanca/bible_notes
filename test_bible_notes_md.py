@@ -272,6 +272,9 @@ class TestBibleNotesMD(unittest.TestCase):
             if _id == note_id:
                 return note_in_mongo
 
+            elif _id in note_in_mongo.referenced_notes:
+                return BibleNoteMD(note_text="test")
+
             else:
                 self.fail(f"Provided argument was not expected id: {_id}")
 
@@ -574,6 +577,12 @@ class TestBibleNotesMD(unittest.TestCase):
         # ).strip()
 
     # TODO Test child_note_id deletion
+    def test_extract(self):
+        note = BibleNoteMD(note_text=test_note)
+
+        # Ensure note is contracted.
+        # Ensure attributes are extracted.
+        # Ensure children are extracted and present.
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):

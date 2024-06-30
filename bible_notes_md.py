@@ -36,40 +36,27 @@ class BibleNoteMD(BibleNote):
     def extract(self) -> None:
         """Extract object attributes from note_text."""
 
-        # Get _id.
-        # TODO Test (move to own function?)
-        child_notes = self._contract_note()
+        self.child_notes = self._contract_note()
+        self._extract_attr_from_parent_text(self.note_text)
+
+        assert self._id
+
+        # Check if extraction is necessary.
+        if self.set_self_from_db(check_note_text=True):
+            return
+
+        # Add parent_id to child notes.
+        for child_note in self.child_notes:
+            child_note.parent_ids.add(self._id)
+            child_note.extract()
 
         # Get parent ids from database if present.
-        assert self._id
-        # TODO Test.
         existing_parent_ids = MongoDriver.get_client()[self.MONGO_DATABASE][
             self.MONGO_COLLECTION
         ].find_one({"_id": self._id}, {"parent_ids": 1})
 
         if existing_parent_ids:
             self.parent_ids.update(existing_parent_ids)
-
-        # Split parent from child notes.
-        split_notes = self._split_notes(self.note_text, self.header_level)
-
-        # Process child notes.
-        for i in range(1, len(split_notes)):
-            child_note = BibleNoteMD(
-                note_text=split_notes[i], header_level=self.header_level + 1
-            )
-
-            child_note.extract()
-
-            self.child_ids(child_note._id)
-
-            child_note.parent_ids.add(self._id)
-
-        parent_text = split_notes[0]
-
-        self._extract_attr_from_parent_text(parent_text=parent_text)
-
-        self.note_text = parent_text
 
     @classmethod
     def get(cls, _id: str) -> Optional["BibleNoteMD"]:
@@ -327,7 +314,7 @@ class BibleNoteMD(BibleNote):
         """Set attributes from mongodb if text matches note in mongodb.
         Extract and set _id field.
 
-        NOTE: Assumes self.note_text has been contracted if check_note_text is True.
+        NOTE: Assumes self has not been contracted.
 
         Returns:
             bool: Whether self attributes could be set from mongodb.
@@ -336,16 +323,21 @@ class BibleNoteMD(BibleNote):
         assert self._id
 
         bible_note = BibleNoteMD.get(_id=self._id)
+        bible_note._expand_note()
 
         # Set this object equal to the object in the database for simplicity.
-        if bible_note:
-            if check_note_text and self.note_text != bible_note.note_text:
-                return False
-            for attribute, value in bible_note.to_db_dict().items():
-                self.__setattr__(attribute, value)
-            return True
+        if not bible_note:
+            # Note not found in database.
+            return False
 
-        return False
+        if check_note_text and self.note_text != bible_note.note_text:
+            # Note found in database, but note_text does not match.
+            return False
+
+        for attribute, value in bible_note.to_db_dict().items():
+            self.__setattr__(attribute, value)
+
+        return True
 
     def _process_note_references_in_parent_text(self, parent_text: str) -> None:
         """Retrieve child ids from parent note.
