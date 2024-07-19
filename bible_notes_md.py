@@ -6,7 +6,7 @@ from bible_notes import BibleNote
 from dataclasses import dataclass
 from typing import Optional
 
-CHILD_ID_REGEX = "^@__id(.+)@$"
+REFERENCE_NOTE_ID_REGEX = "^@__id(.+)@$"
 _ID_REGEX = "^@_id(.+)@$"
 TAGS_REGEX = "^@tags\n^([\s\S]+)\n^@$"
 VERSE_REGEX = "@(\/.*)@"
@@ -41,10 +41,6 @@ class BibleNoteMD(BibleNote):
 
         assert self._id
 
-        # Check if extraction is necessary.
-        if self.set_self_from_db(check_note_text=True):
-            return
-
         # Add parent_id to child notes.
         for child_note in self.child_notes:
             child_note.parent_ids.add(self._id)
@@ -53,7 +49,7 @@ class BibleNoteMD(BibleNote):
         # Get parent ids from database if present.
         existing_parent_ids = MongoDriver.get_client()[self.MONGO_DATABASE][
             self.MONGO_COLLECTION
-        ].find_one({"_id": self._id}, {"parent_ids": 1})
+        ].find_one({"_id": self._id}, {"parent_ids": 1, "_id": 0})["parent_ids"]
 
         if existing_parent_ids:
             self.parent_ids.update(existing_parent_ids)
@@ -209,7 +205,7 @@ class BibleNoteMD(BibleNote):
         )
 
     def _extract_attr_from_parent_text(self, parent_text: str) -> None:
-        """Extract attributes from parent text, including child_ids in parent text..
+        """Extract attributes from parent text parent text..
         attributes: tags, referenced_verses, referenced_notes.
 
         Args:
@@ -223,7 +219,9 @@ class BibleNoteMD(BibleNote):
         self.referenced_verses = set(re.findall(VERSE_REGEX, parent_text, re.M))
 
         # Extract referenced_notes.
-        self._process_note_references_in_parent_text(parent_text=parent_text)
+        self.referenced_notes = self._process_note_references_in_parent_text(
+            parent_text=parent_text
+        )
 
         # Extract theme.
         match = re.search(THEME_REGEX, parent_text, re.M)
@@ -314,7 +312,7 @@ class BibleNoteMD(BibleNote):
         """Set attributes from mongodb if text matches note in mongodb.
         Extract and set _id field.
 
-        NOTE: Assumes self has not been contracted.
+        NOTE: Assumes self has been contracted.
 
         Returns:
             bool: Whether self attributes could be set from mongodb.
@@ -323,12 +321,13 @@ class BibleNoteMD(BibleNote):
         assert self._id
 
         bible_note = BibleNoteMD.get(_id=self._id)
-        bible_note._expand_note()
 
         # Set this object equal to the object in the database for simplicity.
         if not bible_note:
             # Note not found in database.
             return False
+
+        bible_note._expand_note()
 
         if check_note_text and self.note_text != bible_note.note_text:
             # Note found in database, but note_text does not match.
@@ -339,7 +338,7 @@ class BibleNoteMD(BibleNote):
 
         return True
 
-    def _process_note_references_in_parent_text(self, parent_text: str) -> None:
+    def _process_note_references_in_parent_text(self, parent_text: str) -> list[str]:
         """Retrieve child ids from parent note.
         Inherit child notes.
 
@@ -347,9 +346,11 @@ class BibleNoteMD(BibleNote):
             parent_text (str): Text of parent note wihout child note text.
         """
 
+        referenced_notes = []
         # Inherit from child note ids in parent.
-        for reference in re.findall(CHILD_ID_REGEX, parent_text, flags=re.M):
-            self.referenced_notes.append(reference)
+        for reference in re.findall(REFERENCE_NOTE_ID_REGEX, parent_text, flags=re.M):
+            referenced_notes.append(reference)
+        return referenced_notes
 
     def _inherit_child_note(self, child_note: "BibleNoteMD") -> None:
         """Inherit attributes from the provided child note to this object.

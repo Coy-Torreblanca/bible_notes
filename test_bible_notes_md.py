@@ -4,7 +4,7 @@ from unittest.mock import patch
 from datetime import datetime
 from bible_notes_md import (
     BibleNoteMD,
-    CHILD_ID_REGEX,
+    REFERENCE_NOTE_ID_REGEX,
     TAGS_REGEX,
     _ID_REGEX,
     VERSE_REGEX,
@@ -289,7 +289,7 @@ class TestBibleNotesMD(unittest.TestCase):
         self.assertEqual(note_in_mongo_dict, new_bible_note.to_db_dict())
 
     @patch("bible_notes_md.BibleNote.get")
-    def test_process_child_ids_in_parent(self, bible_note_md_get):
+    def test_process_note_references_in_parent_text(self, bible_note_md_get):
 
         child_id = "13902943"
 
@@ -312,9 +312,11 @@ class TestBibleNotesMD(unittest.TestCase):
             parent_note.note_text, parent_note.header_level
         )
 
-        parent_note._process_note_references_in_parent_text(split_notes[0])
+        referenced_notes = parent_note._process_note_references_in_parent_text(
+            split_notes[0]
+        )
 
-        self.assertEqual(parent_note.referenced_notes, [child_id, child_id_2])
+        self.assertEqual(referenced_notes, [child_id, child_id_2])
 
     def test_process_tags(self):
 
@@ -392,7 +394,7 @@ class TestBibleNotesMD(unittest.TestCase):
 
     def test_extract_id(self):
         # Test generation.
-        ## Test heading 0.
+        ## Test heading 0 with id addition.
         test_note = BibleNoteMD(note_text="test_note\nabc")
         test_note._extract_id(test_note.note_text)
 
@@ -400,7 +402,7 @@ class TestBibleNotesMD(unittest.TestCase):
             test_note.note_text, f"@_id{test_note._id}@" + "\ntest_note\nabc"
         )
 
-        ## Test heading 1.
+        ## Test heading 1 with id addition..
         test_note = BibleNoteMD(note_text="# @ test_note\nabc")
         test_note.title = "# @ test_note"
         test_note._extract_id(test_note.note_text)
@@ -414,6 +416,11 @@ class TestBibleNotesMD(unittest.TestCase):
         test_note._id = None
         test_note._extract_id(test_note.note_text)
         self.assertEqual(test_note._id, _id)
+
+        test_note = BibleNoteMD(note_text=h2)
+        test_note._contract_note()
+        test_note._extract_id(test_note.note_text)
+        self.assertEqual(test_note._id, "1231291019")
 
     def test_subtract_header_levels(self):
 
@@ -576,17 +583,78 @@ class TestBibleNotesMD(unittest.TestCase):
         # ]
         # ).strip()
 
-    # TODO Test child_note_id deletion
-    def test_extract(self):
+    @patch("db.driver.MongoDriver.get_client")
+    def test_extract(self, mock):
         note = BibleNoteMD(note_text=test_note)
 
+        note.extract()
+
         # Ensure note is contracted.
+        self.assertEqual(note.note_text, h0.strip())
         # Ensure attributes are extracted.
+        new_note = BibleNoteMD(note_text=test_note)
+        new_note._contract_note()
+        new_note._extract_attr_from_parent_text(new_note.note_text)
+        self.assertEqual(note, new_note)
+
         # Ensure children are extracted and present.
+        # Test first child note.
+        child_note_text = f"{h1}\n{h2}"
+        new_note = BibleNoteMD(note_text=child_note_text)
+        new_note._contract_note()
+        new_note._extract_attr_from_parent_text(new_note.note_text)
+
+        # First child note has no id, so note and new note have a different auto-gen id.
+        new_note.note_text = new_note.note_text.replace(
+            new_note._id, note.child_notes[0]._id
+        )
+        new_note._id = note.child_notes[0]._id
+
+        new_note.parent_ids = {note._id}
+
+        self.assertEqual(note.child_notes[0], new_note)
+
+        # Test child of child note.
+        child_note_text = f"{h2}"
+        new_note = BibleNoteMD(note_text=child_note_text)
+        new_note._contract_note()
+        new_note._extract_attr_from_parent_text(new_note.note_text)
+
+        new_note.parent_ids = {note.child_notes[0]._id}
+
+        self.assertEqual(note.child_notes[0].child_notes[0], new_note)
+
+        # Ensure parent id is found in child notes.
+        for child_note in note.child_notes:
+            assert note._id in child_note.parent_ids
+            for child_child_note in child_note.child_notes:
+                assert child_note._id in child_child_note.parent_ids
+
+        # Ensure existing parent ids are extracted from Mongodb.
+        class tmp_object:
+            def find_one(_filter, projection):
+                if projection != {"parent_ids": 1, "_id": 0} or _filter != {
+                    "_id": "1231291019"
+                }:
+                    raise ValueError(f"Invalid parames: {_filter}, {projection}")
+                return {"parent_ids": [1, 2, 3]}
+
+        def mock_get_client():
+            return {
+                BibleNoteMD.MONGO_DATABASE: {BibleNoteMD.MONGO_COLLECTION: tmp_object}
+            }
+
+        mock.side_effect = mock_get_client
+
+        new_note._id = "1231291019"
+        expected_parent_ids = new_note.parent_ids
+        expected_parent_ids.update([1, 2, 3])
+        new_note.extract()
+        self.assertEqual(expected_parent_ids, new_note.parent_ids)
 
 
 class TestBibleNoteMDRegexes(unittest.TestCase):
-    def test_CHILD_ID_REGEX(self):
+    def test_reference_note_id_regex(self):
         child_ids = ["@__id123402990@", "@__id18301910@", "@__id9109909209ajslkdfj@"]
 
         h0_w_child_ids = h0 + "\n@_id120919@\n" + "\n".join(child_ids)
@@ -597,11 +665,11 @@ class TestBibleNoteMDRegexes(unittest.TestCase):
             child_id.replace("__id", "").replace("@", "") for child_id in child_ids
         ]
 
-        child_ids_h0 = re.findall(CHILD_ID_REGEX, h0_w_child_ids, flags=re.M)
+        child_ids_h0 = re.findall(REFERENCE_NOTE_ID_REGEX, h0_w_child_ids, flags=re.M)
 
         self.assertEqual(child_ids_h0, child_ids)
 
-        child_ids_h1 = re.findall(CHILD_ID_REGEX, h1_w_child_ids, flags=re.M)
+        child_ids_h1 = re.findall(REFERENCE_NOTE_ID_REGEX, h1_w_child_ids, flags=re.M)
 
         self.assertEqual(child_ids_h1, child_ids)
 
