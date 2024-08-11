@@ -49,10 +49,10 @@ class BibleNoteMD(BibleNote):
         # Get parent ids from database if present.
         existing_parent_ids = MongoDriver.get_client()[self.MONGO_DATABASE][
             self.MONGO_COLLECTION
-        ].find_one({"_id": self._id}, {"parent_ids": 1, "_id": 0})["parent_ids"]
+        ].find_one({"_id": self._id}, {"parent_ids": 1, "_id": 0})
 
         if existing_parent_ids:
-            self.parent_ids.update(existing_parent_ids)
+            self.parent_ids.update(existing_parent_ids["parent_ids"])
 
     @classmethod
     def get(cls, _id: str) -> Optional["BibleNoteMD"]:

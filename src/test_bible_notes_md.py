@@ -583,6 +583,10 @@ class TestBibleNotesMD(unittest.TestCase):
         # ]
         # ).strip()
 
+    def test_extract_new_note(self):
+        note = BibleNoteMD(note_text="abc")
+        note.extract()
+
     @patch("db.driver.MongoDriver.get_client")
     def test_extract(self, mock):
         note = BibleNoteMD(note_text=test_note)
