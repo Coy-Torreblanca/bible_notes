@@ -8,19 +8,18 @@ class Verse:
     BOOK: str = field(default="")
     CHAPTER_NUMBER: int = field(default=None)
     VERSE_NUMBER: int = field(default=None)
-    VERSE_TEXT: str = field(default="")
+    VERSE_TEXT: str = field(default=None)
     # TODO Make default transaction configurable.
     TRANSLATION: str = field(default="asv")
     REFERENCES: list[str] = field(default_factory=lambda: [])
     _id: str = field(default=None)
 
     def __post_init__(self):
+        print(self._id)
         """
         Assign metadata for verse object.
 
         1. Generate _id or metadata if missing (_id or metadata is required).
-        2. Get verse text.
-        3. Get references of target verse.
 
         Raises:
             ValueError: If metadata and _id are None.
@@ -34,12 +33,16 @@ class Verse:
             raise ValueError(f"Missing arguments for verse: {self}")
 
         # If Chapter/verse/book are provided, generate _id.
-        if self.BOOK and self.VERSE_NUMBER and self.CHAPTER_NUMBER:
+        if not self._id and (self.BOOK, self.VERSE_NUMBER, self.CHAPTER_NUMBER):
             self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
 
         # If id is provided generate Chapter/verse/book.
         else:
             data = self._id.split("/")
+
+            if not data[0]:
+                data = data[1:]
+                self._id = "/".join(data)
 
             if len(data) == 4:
                 # Create id using given translation.
@@ -48,20 +51,26 @@ class Verse:
                 self.CHAPTER_NUMBER = int(data[2])
                 self.VERSE_NUMBER = int(data[3])
 
-            else:
+            elif len(data) == 3:
                 # Create id using default translation.
                 self.BOOK = data[0]
                 self.CHAPTER_NUMBER = int(data[1])
                 self.VERSE_NUMBER = int(data[2])
                 self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
 
+            else:
+                raise ValueError(f"Too many/few forward slashes: {self._id}")
+
+    def extract_verse_text(self):
         # Extract text from database if necessary.
         if not self.VERSE_TEXT:
             # Extract text if only a single verse number was provided.
             if isinstance(self.VERSE_NUMBER, int) or "-" not in self.VERSE_NUMBER:
-                self.VERSE_TEXT = MongoDriver.get_client()[self.TRANSLATION][
-                    self.BOOK
-                ].find_one({"_id": self._id})["VERSE_TEXT"]
+                client = MongoDriver.get_client()
+                db = client[self.TRANSLATION]
+                col = db[self.BOOK]
+                self.VERSE_TEXT = col.find_one({"_id": self._id})
+                print(self.VERSE_TEXT)
 
             else:
                 # Extract the text for start and end verse and every verse in between.
@@ -85,6 +94,7 @@ class Verse:
             if not self.VERSE_TEXT:
                 raise ValueError(f"No verse text found for specified verse: {self._id}")
 
+    def extract_references(self):
         # Extract references from database if not present.
         if not self.REFERENCES:
             self.REFERENCES = []
@@ -118,11 +128,13 @@ class Verse:
             bool: If the verse exists.
         """
 
+        verse = Verse(_id=verse_id)
         try:
-            Verse(_id=verse_id)
+            verse.extract_verse_text()
             return True
 
-        except Exception:
+        except ValueError as e:
+            print(e)
             return False
 
     def get_reference_texts(self):
