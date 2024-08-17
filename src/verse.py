@@ -2,6 +2,8 @@ from enum import Enum
 from dataclasses import dataclass, field, asdict
 from db.driver import MongoDriver
 
+TRANSLATIONS = MongoDriver.get_client().list_database_names()
+
 
 @dataclass
 class Verse:
@@ -15,7 +17,6 @@ class Verse:
     _id: str = field(default=None)
 
     def __post_init__(self):
-        print(self._id)
         """
         Assign metadata for verse object.
 
@@ -47,11 +48,8 @@ class Verse:
             if len(data) == 0:
                 raise ValueError(f"Id does not have enough data: {self._id}")
 
-            client = MongoDriver.get_client()
-            translations = client.list_database_names()
-
-            if data[0] in translations:
-                translation_in_id = True
+            global TRANSLATIONS
+            if data[0] in TRANSLATIONS:
 
                 self.BOOK = data[1]
 
@@ -73,7 +71,38 @@ class Verse:
 
                 self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
 
-        print(self._id, self.BOOK, self.CHAPTER_NUMBER, self.VERSE_NUMBER)
+        # Validate id.
+        if self.VERSE_NUMBER:
+            assert self.CHAPTER_NUMBER
+            assert self.BOOK
+
+        if self.CHAPTER_NUMBER:
+            assert self.BOOK
+
+        # Get start and end books/chapters/verses.
+        if self.BOOK and isinstance(self.BOOK, str) and "-" in self.BOOK:
+            self.start_book, self.end_book = self.BOOK.split("-")
+        else:
+            self.start_book = self.end_book = None
+
+        if (
+            self.CHAPTER_NUMBER
+            and isinstance(self.CHAPTER_NUMBER, str)
+            and "-" in self.CHAPTER_NUMBER
+        ):
+            self.start_chapter, self.end_chapter = self.CHAPTER_NUMBER.split("-")
+
+        else:
+            self.start_chapter = self.end_chapter = None
+
+        if (
+            self.VERSE_NUMBER
+            and isinstance(self.VERSE_NUMBER, str)
+            and "-" in self.VERSE_NUMBER
+        ):
+            self.start_verse, self.end_verse = self.VERSE_NUMBER.split("-")
+        else:
+            self.start_verse = self.end_verse = None
 
     def extract_verse_text(self):
         # Extract text from database if necessary.
@@ -146,13 +175,102 @@ class Verse:
         """
 
         verse = Verse(_id=verse_id)
-        try:
-            verse.extract_verse_text()
-            return True
 
-        except ValueError as e:
-            print(e)
-            return False
+        # Validate Translation.
+        global TRANSLATIONS
+        assert verse.TRANSLATION in TRANSLATIONS
+
+        client = MongoDriver.get_client()
+        collections = client[verse.TRANSLATION].list_collection_names()
+
+        # Validate Book.
+        if verse.BOOK:
+            if verse.start_book and verse.end_book:
+                assert verse.start_book in collections
+                assert verse.end_book in collections
+
+            else:
+                assert verse.BOOK in collections
+
+        # Validate Chapter.
+        if verse.CHAPTER_NUMBER:
+            if verse.start_chapter and verse.end_chapter:
+                assert (
+                    client[verse.TRANSLATION][verse.BOOK].find_one(
+                        {
+                            "_id": {
+                                "$regex": f"{verse.TRANSLATION}/{verse.BOOK}/{verse.start_chapter}/.*"
+                            }
+                        },
+                        {"_id": 1},
+                    )
+                    is not None
+                )
+                assert (
+                    client[verse.TRANSLATION][verse.BOOK].find_one(
+                        {
+                            "_id": {
+                                "$regex": f"{verse.TRANSLATION}/{verse.BOOK}/{verse.end_chapter}/.*"
+                            }
+                        },
+                        {"_id": 1},
+                    )
+                    is not None
+                )
+
+            else:
+                assert (
+                    client[verse.TRANSLATION][verse.BOOK].find_one(
+                        {
+                            "_id": {
+                                "$regex": f"{verse.TRANSLATION}/{verse.BOOK}/{verse.CHAPTER_NUMBER}/.*"
+                            }
+                        },
+                        {"_id": 1},
+                    )
+                    is not None
+                )
+
+        # Validate Verse
+        if verse.VERSE_NUMBER:
+            if verse.start_verse and verse.end_verse:
+                assert (
+                    client[verse.TRANSLATION][verse.BOOK].find_one(
+                        {
+                            "_id": {
+                                "$regex": f"{verse.TRANSLATION}/{verse.BOOK}/{verse.CHAPTER_NUMBER}/{verse.start_verse}"
+                            }
+                        },
+                        {"_id": 1},
+                    )
+                    is not None
+                )
+                assert (
+                    client[verse.TRANSLATION][verse.BOOK].find_one(
+                        {
+                            "_id": {
+                                "$regex": f"{verse.TRANSLATION}/{verse.BOOK}/{verse.CHAPTER_NUMBER}/{verse.end_verse}"
+                            }
+                        },
+                        {"_id": 1},
+                    )
+                    is not None
+                )
+
+            else:
+                assert (
+                    client[verse.TRANSLATION][verse.BOOK].find_one(
+                        {
+                            "_id": {
+                                "$regex": f"{verse.TRANSLATION}/{verse.BOOK}/{verse.CHAPTER_NUMBER}/{verse.VERSE_NUMBER}"
+                            }
+                        },
+                        {"_id": 1},
+                    )
+                    is not None
+                )
+
+        return True
 
     def get_reference_texts(self):
         """Get all texts from all reference verses in this obj."""
