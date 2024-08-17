@@ -36,7 +36,7 @@ class Verse:
         if not self._id and (self.BOOK, self.VERSE_NUMBER, self.CHAPTER_NUMBER):
             self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
 
-        # If id is provided generate Chapter/verse/book.
+        # If id is provided generate Translation/Chapter/verse/book.
         else:
             data = self._id.split("/")
 
@@ -44,33 +44,50 @@ class Verse:
                 data = data[1:]
                 self._id = "/".join(data)
 
-            if len(data) == 4:
-                # Create id using given translation.
-                self.TRANSLATION = data[0]
-                self.BOOK = data[1]
-                self.CHAPTER_NUMBER = int(data[2])
-                self.VERSE_NUMBER = int(data[3])
+            if len(data) == 0:
+                raise ValueError(f"Id does not have enough data: {self._id}")
 
-            elif len(data) == 3:
-                # Create id using default translation.
-                self.BOOK = data[0]
-                self.CHAPTER_NUMBER = int(data[1])
-                self.VERSE_NUMBER = int(data[2])
-                self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
+            client = MongoDriver.get_client()
+            translations = client.list_database_names()
+
+            if data[0] in translations:
+                translation_in_id = True
+
+                self.BOOK = data[1]
+
+                if len(data) > 2:
+                    self.CHAPTER_NUMBER = data[2]
+
+                if len(data) > 3:
+                    self.VERSE_NUMBER = data[3]
 
             else:
-                raise ValueError(f"Too many/few forward slashes: {self._id}")
+
+                self.BOOK = data[0]
+
+                if len(data) > 1:
+                    self.CHAPTER_NUMBER = data[1]
+
+                if len(data) > 2:
+                    self.VERSE_NUMBER = data[2]
+
+                self._id = f"{self.TRANSLATION}/{self.BOOK}/{self.CHAPTER_NUMBER}/{self.VERSE_NUMBER}"
+
+        print(self._id, self.BOOK, self.CHAPTER_NUMBER, self.VERSE_NUMBER)
 
     def extract_verse_text(self):
         # Extract text from database if necessary.
         if not self.VERSE_TEXT:
             # Extract text if only a single verse number was provided.
-            if isinstance(self.VERSE_NUMBER, int) or "-" not in self.VERSE_NUMBER:
+            if self.VERSE_NUMBER and (
+                isinstance(self.VERSE_NUMBER, int) or "-" not in self.VERSE_NUMBER
+            ):
                 client = MongoDriver.get_client()
                 db = client[self.TRANSLATION]
                 col = db[self.BOOK]
-                self.VERSE_TEXT = col.find_one({"_id": self._id})
-                print(self.VERSE_TEXT)
+                self.VERSE_TEXT = col.find_one({"_id": self._id}, {"VERSE_TEXT": 1})
+                if not self.VERSE_TEXT:
+                    raise ValueError(f"Could not find verse in database: {self._id}")
 
             else:
                 # Extract the text for start and end verse and every verse in between.
