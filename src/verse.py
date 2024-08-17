@@ -118,6 +118,8 @@ class Verse:
                 if not self.VERSE_TEXT:
                     raise ValueError(f"Could not find verse in database: {self._id}")
 
+                self.VERSE_TEXT = self.VERSE_TEXT["VERSE_TEXT"]
+
             else:
                 # Extract the text for start and end verse and every verse in between.
                 start_verse, end_verse = self.VERSE_NUMBER.split("-")
@@ -297,10 +299,10 @@ class Verse:
         Returns:
             str: Verse in markdown and reference verses with text if requested.
         """
-        string = [self._id, self.VERSE_TEXT.replace("\n", "\n>")]
+        string = [f"@{ self._id }@", self.VERSE_TEXT.replace("\n", "\n>")]
 
         if not include_references:
-            return f"# {string[0]}\n> {string[1]}"
+            return f"{string[0]}\n> {string[1]}"
 
         if self.REFERENCE_TEXTS:
             references = []
@@ -316,7 +318,7 @@ class Verse:
         else:
             string.append("\n".join(self.REFERENCES))
 
-        return f"# {string[0]}\n> {string[1]}\n\n# References\n{string[2]}"
+        return f"{string[0]}\n> {string[1]}\n\n# References\n{string[2]}"
 
     def todict(self):
         return asdict(self)

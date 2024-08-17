@@ -9,10 +9,16 @@ def get_verse(args):
     book = args.book.capitalize() if not re.search("^\d", args.book) else args.book
 
     verse = Verse(
-        BOOK=book, CHAPTER_NUMBER=args.chapter_number, VERSE_NUMBER=args.verse_number
+        TRANSLATION=args.translation,
+        BOOK=book,
+        CHAPTER_NUMBER=args.chapter_number,
+        VERSE_NUMBER=args.verse_number,
     )
 
+    verse.extract_verse_text()
+
     if not args.get_references:
+        verse.extract_references()
         print(verse.__str__(include_references=False))
 
     else:
@@ -49,6 +55,13 @@ def main():
         action="store_true",
         help="Whether to get verse references.",
         default=False,
+    )
+    get_verse_parser.add_argument(
+        "--translation",
+        "-t",
+        action="store",
+        help="Specify a translation (asv is default).",
+        default="asv",
     )
     get_verse_parser.set_defaults(func=get_verse)
 
