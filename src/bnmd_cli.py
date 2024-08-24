@@ -1,16 +1,25 @@
 # CLI BNMD
-# python3 -m bnmd_cli w ../notes/trip.md
+# bn w ../notes/trip.md
 import re
 import argparse
 from bible_notes_md import BibleNoteMD
 
 
+def read_note(args):
+    pass
+
+
 def write_note(args):
-    note = BibleNoteMD(note_text="\n".join(args.note_path.readlines()))
+    lines = args.note_path.readlines()
+    note = BibleNoteMD(note_text="".join(lines))
 
     note.extract()
 
     note.upsert()
+
+    with open(args.note_path.name, "w") as f:
+
+        f.write(note.note_text)
 
 
 def main():
